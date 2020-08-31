@@ -7,22 +7,56 @@
 # Start by defining the sequence of the region to search. Break up the sequence into "left" and "right" of the break. If the break leaves overhangs, include overhangs on both the left and right sequences.
 # also define the distance around the break you wish to search for SD-MMEJ consistent repeats.
 
-rm(list=ls())
-library(stringr)
-library(Biostrings)
-##setwd("/Users/awelterofcollidingmaterials/desktop/")
-##a<-read.csv("TestData_Insertions.csv")
+#!/usr/bin/env Rscript
+args = commandArgs(trailingOnly=TRUE)
 
-setwd("/Users/rbator01/Documents/git/sdmmej/test_data/")
-#a<-read.csv("~/Desktop/TestData_Insertions.csv")
-a<-read.csv("/Users/rbator01/Documents/git/sdmmej/test_data/TestData_HiFiBR_Output_mod_output/TestData_HiFiBR_Output_mod_insertion.txt")
+suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(Biostrings))
+suppressPackageStartupMessages(library(stringr))
+suppressPackageStartupMessages(library(Biostrings))
+
+##test if there is at least one argument: if not, return an error
+# if (length(args)<4) {
+#   print(length(args))
+#   stop("Usage: Rscript INSERTION_PROGRAM.R hifibr_reclassified.csv insertion_file.txt nick_location outdir", call.=FALSE)
+# } else if (length(args)==4) {
+#   hifi_in = args[1]
+#   insertion_in = args[2]
+#   nick = as.integer(args[3])
+#   out_dir = args[4]
+# }
+
+#out_dir = "~/Documents/git/sdmmej/test_data/TestData_HiFiBR_Output_mod_output/"
+#hifi_in = paste0(out_dir,"TestData_HiFiBR_Output_mod_reclassified.csv")
+#insertion_in = paste0(out_dir,"TestData_HiFiBR_Output_mod_insertion.txt")
+#nick=71
+
+out_dir = "~/Documents/git/sdmmej/test_data/expected_results/"
+hifi_in = "~/Documents/git/sdmmej/test_data/TestData_HiFiBR_Output_mod_output/TestData_HiFiBR_Output_mod_reclassified.csv"
+insertion_in = paste0(out_dir,"TestData_Insertions.csv")
+nick=71
+
+a<-read.csv(insertion_in)
+
+## get reference
+hifibr_input = read.csv(hifi_in)
+ref = hifibr_input %>% dplyr::filter(., CLASS_final == 'exact')
+ref = ref$ALIGNED_SEQ
 
 n <- 30  # number of bases to the left and right of the break you want to search of repeated motifs
 p <- 10 # number of bases to the left and right of the initial repeat motif to search for homology
-plasmid <- "test_data_m6"
-L <- "GGAAAAAATTCGTACTTTGGAGTACGAAATGCGTCGTTTAGAGCAGCAGCCGAATTCGGTACATTACCCTGTTAT"
-R <- "TTATCCCTAGCTATGGTCTGCGCTACTAGTGGATCTGGGGCCGCATAGGCCATCCTCTAGAGTCGACCTCGAACGTAAACGTTAACGTAACGTTAACTCG"
+#plasmid <- "test_data_m6"
+plasmid <- gsub("_reclassified.csv","",basename(hifi_in))
 
+#L <- "GGAAAAAATTCGTACTTTGGAGTACGAAATGCGTCGTTTAGAGCAGCAGCCGAATTCGGTACATTACCCTGTTAT"
+L = substr(ref,0,nick)
+#R <- "TTATCCCTAGCTATGGTCTGCGCTACTAGTGGATCTGGGGCCGCATAGGCCATCCTCTAGAGTCGACCTCGAACGTAAACGTTAACGTAACGTTAACTCG"
+l=length(ref)
+R <- substr(ref,nick+1,nchar(ref)) 
+
+if (substr(R,0,4) == 'TTAT'){
+ L =  paste0(L,'TAT')
+}
 l <- nchar(L) # number of nucleotides of the left hand sequence
 r <- nchar(R) # number of nucleotides of the right hand sequence
 k1 <- 30 # how far you want to cut back to search, this needs to to be adjusted based on how large the deletions are, but i think this covers up to 30 bp of deletion on either side.
@@ -368,101 +402,92 @@ test2 <- test[!duplicated(test[,16]),]
 pretty <- cbind(ID=test2[,1], as.data.frame(test2[,15]), as.data.frame(test2[,14])) 
 colnames(pretty)[2:3] <- c("insertion_alignment", "mechanism")
 
-output1 <- paste(plasmid, "testdata_insertion_consistency2.csv", sep="")
-output2 <- paste(plasmid, "testdata_insertion_consistency_long2.csv", sep="")
-output3 <- paste(plasmid, "testdata_insertion_alignment2.csv", sep="")
+output1 <- paste0(out_dir, "/", plasmid, "testdata_insertion_consistency2.csv")
+output2 <- paste0(out_dir, "/", plasmid, "testdata_insertion_consistency_long2.csv")
+output3 <- paste0(out_dir, "/", plasmid, "testdata_insertion_alignment2.csv")
 write.csv(master2, output1)
 write.csv(test2, output2)
 write.csv(pretty, output3)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#----------------------------------------
-# Went through insertions and had to manually change some indices. 
-# Reload the consistency table and rerun consistency determination and alignment completion
-# NOTE: after going through the insertion consistency table, either delete the first collumn of just row numbers 
-# and save, OR make sure to remove that first collumn. The first collumn of the "master2" data frame should be "ID"
-
-master <- read.csv("test_data_m6testdata_insertion_consistency2_curated.csv")
-master <- as.data.frame(master[,1:6])
-
-# if you dont have a5 already loaded...chances are you dont, rerun lines 13-52 to generate that data frame. 
-# It is just easier that trying to dick around with formatting the "master" file.
-
-master2 <- merge(master, a5, by="ID", all.y=TRUE)
-master2$DRmotif_length  <- master2$DR_END-master2$DR_START+1    # add repeat motif length for direct repeat
-master2$RCmotif_length <- master2$RC_END-master2$RC_START+1    # add repeat motif length for reverse complement
-master2[,2] <- ifelse(master2$DRmotif_length>=4,master2[,2] , NA)    # consistency for either direct repeat/reverse complement
-master2[,4] <- ifelse(master2$RCmotif_length>=4,master2[,4] , NA)
-master2[,6] <- ifelse(!is.na(master2[,2]), "TRUE", ifelse(!is.na(master2[,4]), "TRUE", "FALSE" ))
-# Code below workds to give you "aligned" templates
-for (i in 1:nrow(master2)){
-  if(!is.na(master2[i,2])){
-    test <- substring(master2[i,10], first = master2[i,2], last = master2[i,3])
-    test2 <- ifelse((as.numeric(master2[i,2])>as.numeric(master2[i,8])), (as.numeric(master2[i,2])+as.numeric(nchar(as.character(master2[i,11]))-1)), (as.numeric(master2[i,2])-1))
-    test3 <- rep.int("-", times=test2)
-    test4 <- paste(test3, collapse="")
-    test5 <- paste(test4, test, sep="")
-    test6 <- rep.int("-", times=(as.numeric(nchar(as.character(master2[i,7]))-nchar(test5))))
-    test7 <- paste(test6, collapse="")
-    test8 <- paste(test5, test7, sep="")
-    master2[i,15]=test8    
-  }
-  else {
-    master2[i,15]="0"
-  }
-}
-# For reverse complement
-for (i in 1:nrow(master2)){
-  if(!is.na(master2[i,4])){
-    test <- tolower(substring(master2[i,10], first = master2[i,4], last = master2[i,5]))    # make reverse complement repeats lowercase
-    test2 <- ifelse((as.numeric(master2[i,4])>as.numeric(master2[i,8])), (as.numeric(master2[i,4])+as.numeric(nchar(as.character(master2[i,11]))-1)), (as.numeric(master2[i,4])-1))
-    test3 <- rep.int("-", times=test2)
-    test4 <- paste(test3, collapse="")
-    test5 <- paste(test4, test, sep="")
-    test6 <- rep.int("-", times=(as.numeric(nchar(as.character(master2[i,7]))-nchar(test5))))
-    test7 <- paste(test6, collapse="")
-    test8 <- paste(test5, test7, sep="")
-    master2[i,16]=test8    
-  }
-  else {
-    master2[i,16]="0"
-  }
-} 
-colnames(master2)[15:16] <- c("Loop-out", "Snap-back")
-test <- reshape(master2, 
-                varying=c("RECONSTRUCTED_SEQ", "Loop-out", "Snap-back"),
-                idvar="ID",
-                v.names="insertion_alignment",
-                timevar="mechanism",
-                times=c("seq", "Loop-out", "Snap-back"),
-                new.row.names=1:10000,
-                direction="long")
-test <- test[order(test$ID),]
-test$unicorn <- paste(test[,1], test[,14], test[,15], sep="-") 
-test2 <- test[!duplicated(test[,16]),]
-# save it, before making a slightly cleaner version
-# Make pretty, two columns, ID, and aligned seq
-pretty <- cbind(ID=test2[,1], as.data.frame(test2[,15]), as.data.frame(test2[,14])) 
-colnames(pretty)[2:3] <- c("insertion_alignment", "mechanism")
-
-output1 <- paste(plasmid, "testdata_insertion_consistency3.csv", sep="")
-output2 <- paste(plasmid, "testdata_insertion_consistency_long3.csv", sep="")
-output3 <- paste(plasmid, "testdata_insertion_alignment3.csv", sep="")
-write.csv(master2, output1)
-write.csv(test2, output2)
-write.csv(pretty, output3)
+### THE REST is not used
+# 
+# 
+# 
+# 
+# 
+# 
+# #----------------------------------------
+# # Went through insertions and had to manually change some indices. 
+# # Reload the consistency table and rerun consistency determination and alignment completion
+# # NOTE: after going through the insertion consistency table, either delete the first collumn of just row numbers 
+# # and save, OR make sure to remove that first collumn. The first collumn of the "master2" data frame should be "ID"
+# 
+# master <- read.csv("test_data_m6testdata_insertion_consistency2_curated.csv")
+# master <- as.data.frame(master[,1:6])
+# 
+# # if you dont have a5 already loaded...chances are you dont, rerun lines 13-52 to generate that data frame. 
+# # It is just easier that trying to dick around with formatting the "master" file.
+# 
+# master2 <- merge(master, a5, by="ID", all.y=TRUE)
+# master2$DRmotif_length  <- master2$DR_END-master2$DR_START+1    # add repeat motif length for direct repeat
+# master2$RCmotif_length <- master2$RC_END-master2$RC_START+1    # add repeat motif length for reverse complement
+# master2[,2] <- ifelse(master2$DRmotif_length>=4,master2[,2] , NA)    # consistency for either direct repeat/reverse complement
+# master2[,4] <- ifelse(master2$RCmotif_length>=4,master2[,4] , NA)
+# master2[,6] <- ifelse(!is.na(master2[,2]), "TRUE", ifelse(!is.na(master2[,4]), "TRUE", "FALSE" ))
+# # Code below workds to give you "aligned" templates
+# for (i in 1:nrow(master2)){
+#   if(!is.na(master2[i,2])){
+#     test <- substring(master2[i,10], first = master2[i,2], last = master2[i,3])
+#     test2 <- ifelse((as.numeric(master2[i,2])>as.numeric(master2[i,8])), (as.numeric(master2[i,2])+as.numeric(nchar(as.character(master2[i,11]))-1)), (as.numeric(master2[i,2])-1))
+#     test3 <- rep.int("-", times=test2)
+#     test4 <- paste(test3, collapse="")
+#     test5 <- paste(test4, test, sep="")
+#     test6 <- rep.int("-", times=(as.numeric(nchar(as.character(master2[i,7]))-nchar(test5))))
+#     test7 <- paste(test6, collapse="")
+#     test8 <- paste(test5, test7, sep="")
+#     master2[i,15]=test8    
+#   }
+#   else {
+#     master2[i,15]="0"
+#   }
+# }
+# # For reverse complement
+# for (i in 1:nrow(master2)){
+#   if(!is.na(master2[i,4])){
+#     test <- tolower(substring(master2[i,10], first = master2[i,4], last = master2[i,5]))    # make reverse complement repeats lowercase
+#     test2 <- ifelse((as.numeric(master2[i,4])>as.numeric(master2[i,8])), (as.numeric(master2[i,4])+as.numeric(nchar(as.character(master2[i,11]))-1)), (as.numeric(master2[i,4])-1))
+#     test3 <- rep.int("-", times=test2)
+#     test4 <- paste(test3, collapse="")
+#     test5 <- paste(test4, test, sep="")
+#     test6 <- rep.int("-", times=(as.numeric(nchar(as.character(master2[i,7]))-nchar(test5))))
+#     test7 <- paste(test6, collapse="")
+#     test8 <- paste(test5, test7, sep="")
+#     master2[i,16]=test8    
+#   }
+#   else {
+#     master2[i,16]="0"
+#   }
+# } 
+# colnames(master2)[15:16] <- c("Loop-out", "Snap-back")
+# test <- reshape(master2, 
+#                 varying=c("RECONSTRUCTED_SEQ", "Loop-out", "Snap-back"),
+#                 idvar="ID",
+#                 v.names="insertion_alignment",
+#                 timevar="mechanism",
+#                 times=c("seq", "Loop-out", "Snap-back"),
+#                 new.row.names=1:10000,
+#                 direction="long")
+# test <- test[order(test$ID),]
+# test$unicorn <- paste(test[,1], test[,14], test[,15], sep="-") 
+# test2 <- test[!duplicated(test[,16]),]
+# # save it, before making a slightly cleaner version
+# # Make pretty, two columns, ID, and aligned seq
+# pretty <- cbind(ID=test2[,1], as.data.frame(test2[,15]), as.data.frame(test2[,14])) 
+# colnames(pretty)[2:3] <- c("insertion_alignment", "mechanism")
+# 
+# output1 <- paste(plasmid, "testdata_insertion_consistency3.csv", sep="")
+# output2 <- paste(plasmid, "testdata_insertion_consistency_long3.csv", sep="")
+# output3 <- paste(plasmid, "testdata_insertion_alignment3.csv", sep="")
+# write.csv(master2, output1)
+# write.csv(test2, output2)
+# write.csv(pretty, output3)

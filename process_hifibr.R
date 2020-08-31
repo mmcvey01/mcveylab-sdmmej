@@ -5,10 +5,11 @@ suppressPackageStartupMessages(library(tidyverse))
 suppressPackageStartupMessages(library(Biostrings))
 
 # test if there is at least one argument: if not, return an error
-if (length(args)==0) {
-  stop("Usage: Rscript process_hifibr.R input_file.csv", call.=FALSE)
-} else if (length(args)==1) {
+if (length(args)<2) {
+  stop("Usage: Rscript process_hifibr.R input_file.csv outdir", call.=FALSE)
+} else if (length(args)==2) {
   input_file = args[1]
+  out_dir = args[2]
 }
 
 #input_file="~/Documents/git/sdmmej/test_data/TestData_HiFiBR_Output_mod.csv"
@@ -115,14 +116,17 @@ for (row in 1:nrow(hifibr_input_filter_complex)){
 }
 
 ## write out
+dir.create(out_dir,showWarnings = FALSE)
+
 ## deletions
-write(aligned_deletions, file = paste0("~/Documents/git/sdmmej/test_data/output/",out_string,"_deletion.txt"),append = FALSE, sep = "\n")
+write(aligned_deletions, file = paste0(out_dir,"/", out_string,"_deletion.txt"),append = FALSE, sep = "\n")
 
 ## insertions
-write(insertions, file = paste0("~/Documents/git/sdmmej/test_data/output/",out_string,"_insertion.txt"),append = FALSE, sep = "\n")
+insertions = c("RECONSTRUCTED_SEQ",insertions)
+write(insertions, file = paste0(out_dir,"/",out_string,"_insertion.txt"),append = FALSE, sep = "\n")
 
 ## unknown complex
-write(comp_unknown, file = paste0("~/Documents/git/sdmmej/test_data//output/",out_string,"_complex.txt"),append = FALSE, sep = "\n")
+write(comp_unknown, file = paste0(out_dir,"/", out_string,"_complex.txt"),append = FALSE, sep = "\n")
 
 ## output file
-write.csv(hifibr_input, file = paste0("~/Documents/git/sdmmej/test_data/output/",out_string,"_reclassified.csv"), row.names = FALSE)
+write.csv(hifibr_input, file = paste0(out_dir,"/", out_string,"_reclassified.csv"), row.names = FALSE)
