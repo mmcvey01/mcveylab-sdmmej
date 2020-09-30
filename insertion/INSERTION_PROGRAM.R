@@ -16,26 +16,33 @@ suppressPackageStartupMessages(library(stringr))
 suppressPackageStartupMessages(library(Biostrings))
 
 ##test if there is at least one argument: if not, return an error
-# if (length(args)<4) {
-#   print(length(args))
-#   stop("Usage: Rscript INSERTION_PROGRAM.R hifibr_reclassified.csv insertion_file.txt nick_location outdir", call.=FALSE)
-# } else if (length(args)==4) {
-#   hifi_in = args[1]
-#   insertion_in = args[2]
-#   nick = as.integer(args[3])
-#   out_dir = args[4]
-# }
+if (length(args)<5) {
+  print(length(args))
+  stop("Usage: Rscript INSERTION_PROGRAM.R hifibr_reclassified.csv insertion_file.txt nick_location outdir", call.=FALSE)
+} else if (length(args)==5) {
+  hifi_in = args[1]
+  insertion_in = args[2]
+  out_dir = args[3]
+  nick = as.integer(args[4])
+  search_radius=as.integer(args[5])
+  
+}
 
 #out_dir = "~/Documents/git/sdmmej/test_data/TestData_HiFiBR_Output_mod_output/"
 #hifi_in = paste0(out_dir,"TestData_HiFiBR_Output_mod_reclassified.csv")
 #insertion_in = paste0(out_dir,"TestData_HiFiBR_Output_mod_insertion.txt")
 #nick=71
 
-out_dir = "~/Documents/git/sdmmej/test_data/expected_results/"
-hifi_in = "~/Documents/git/sdmmej/test_data/TestData_HiFiBR_Output_mod_output/TestData_HiFiBR_Output_mod_reclassified.csv"
-insertion_in = paste0(out_dir,"TestData_Insertions.csv")
-nick=71
+# out_dir = "~/Documents/git/sdmmej/test_data/expected_results/"
+# hifi_in = "~/Documents/git/sdmmej/test_data/TestData_HiFiBR_Output_mod_output/TestData_HiFiBR_Output_mod_reclassified.csv"
+# insertion_in = paste0(out_dir,"TestData_Insertions.csv")
+# nick=71
 
+# out_dir = "~/Box/rebecca_documents/sdmmej_data/"
+# hifi_in = "~/Box/rebecca_documents/sdmmej_data/PolyA1Seq_reclassified.csv"
+# insertion_in = "~/Box/rebecca_documents/sdmmej_data/PolyA1Seq_insertion.txt"
+# nick=161
+# 
 a<-read.csv(insertion_in)
 
 ## get reference
@@ -43,13 +50,14 @@ hifibr_input = read.csv(hifi_in)
 ref = hifibr_input %>% dplyr::filter(., CLASS_final == 'exact')
 ref = ref$ALIGNED_SEQ
 
-n <- 30  # number of bases to the left and right of the break you want to search of repeated motifs
+n <- search_radius  # number of bases to the left and right of the break you want to search of repeated motifs
 p <- 10 # number of bases to the left and right of the initial repeat motif to search for homology
 #plasmid <- "test_data_m6"
 plasmid <- gsub("_reclassified.csv","",basename(hifi_in))
 
 #L <- "GGAAAAAATTCGTACTTTGGAGTACGAAATGCGTCGTTTAGAGCAGCAGCCGAATTCGGTACATTACCCTGTTAT"
 L = substr(ref,0,nick)
+
 #R <- "TTATCCCTAGCTATGGTCTGCGCTACTAGTGGATCTGGGGCCGCATAGGCCATCCTCTAGAGTCGACCTCGAACGTAAACGTTAACGTAACGTTAACTCG"
 l=length(ref)
 R <- substr(ref,nick+1,nchar(ref)) 
@@ -57,6 +65,7 @@ R <- substr(ref,nick+1,nchar(ref))
 if (substr(R,0,4) == 'TTAT'){
  L =  paste0(L,'TAT')
 }
+L
 l <- nchar(L) # number of nucleotides of the left hand sequence
 r <- nchar(R) # number of nucleotides of the right hand sequence
 k1 <- 30 # how far you want to cut back to search, this needs to to be adjusted based on how large the deletions are, but i think this covers up to 30 bp of deletion on either side.
@@ -71,6 +80,15 @@ for (i in a[, 1]){
   lbb <- lb[nrow(lb),2]
   a2[i] = lbb
 }
+
+### testing
+#sigma <- nucleotideSubstitutionMatrix(match = 2, mismatch = -1, baseOnly = FALSE)
+#seq=i
+#align <- pairwiseAlignment(seq, ref, substitutionMatrix = sigma, gapOpening = -2,
+#                           gapExtension = -8, scoreOnly = FALSE)
+### 
+
+
 a3=NULL    # create empty vector to insert RIGHT del boundary
 for (i in a[, 1]){
   rb <- str_locate(as.character(i), sR1)

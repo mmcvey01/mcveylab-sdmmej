@@ -19,6 +19,7 @@ def parse_args():
     return args.h_in, args.d_in, args.dir_path, int(args.nick), int(args.search_radius), int(args.min_consist_rep_size)
 
 def parse_ref(h_in, nick):
+    print(h_in)
     hifi_input = pd.read_csv(h_in)
 
     reference = hifi_input.loc[hifi_input['CLASS'] == 'exact']
@@ -45,6 +46,7 @@ def parse_ref(h_in, nick):
     return original_seq, left_dna, mid_dna, right_dna, rightnick
 
 h_in, d_in, dir_path, nick, search_radius, min_consist_rep_size = parse_args()
+print(h_in)
 original_seq, left_dna, mid_dna, right_dna, rightnick = parse_ref(h_in, nick)
 
 # get and process data file
@@ -54,6 +56,10 @@ df = open(data_file)
 
 base_name = os.path.basename(data_file).strip('.txt')
 
+
+# make output dir
+if not os.path.exists(dir_path):
+    os.makedirs(dir_path)
 
 # get output filename
 outfile = dir_path + "/" + base_name + "_consistency_log.txt"

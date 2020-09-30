@@ -436,6 +436,8 @@ def get_deln_indices(ori_seq, deleted_seq):
         j += 1
     if j < len(ori_seq)-1:
         print "original seq and deletion not properly aligned(C)"
+        print(ori_seq)
+        print(deleted_seq)
         return None
     return (del_index1, del_index2)
 
