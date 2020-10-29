@@ -2,7 +2,7 @@
 
 This is a repository to work on the error prone dna repair project with the McVey lab at Tufts University.
 
-** Dependencies ***
+**Dependencies***
 
 Python 2.7
 Python libraries: pandas
@@ -10,7 +10,7 @@ Python libraries: pandas
 R >=3.5
 R libraries: tidyverse, Biostrings
 
-** Pipeline Script **
+**Pipeline Script**
 This script takes one input: the path to the HiFibr output file
 
 Example usage on test data: 
