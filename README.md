@@ -21,10 +21,9 @@ Example usage on test data:
 
 `sh run_pipeline.sh test_data/polyA1Seq/PolyA1Seq_testdata.csv`
 
-It generates output files in a directory `PolyA1Seq_testdata_output`  
+It generates output files in a directory `PolyA1Seq_testdata_output` with the following output files  
 
-- Outputs from Hifibr processing script
-
+- Outputs from Hifibr processing script  
 `PolyA1Seq_testdata_reclassified.csv` Same format input, but adds an “ID” column as well as a column for how the sequence was reclassified  
 `PolyA1Seq_testdata_complex.txt` sequences that could not be reclassified as ins or del  
 `PolyA1Seq_testdata_insertion.txt` all ins sequences  
