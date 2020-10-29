@@ -5,33 +5,28 @@ suppressPackageStartupMessages(library(tidyverse))
 suppressPackageStartupMessages(library(Biostrings))
 
 # test if there is at least 5 argument: if not, return an error
-if (length(args)<5) {
-  stop("Usage: Rscript process_hifibr.R input_file.csv outdir search_radius debug", call.=FALSE)
-} else if (length(args)==5) {
-  input_file = args[1]
-  out_dir = args[2]
-  search_radius=as.integer(args[3])
-  break_location=as.integer(args[4])
-  debug=as.integer(args[5])
-}
+ if (length(args)<5) {
+   stop("Usage: Rscript process_hifibr.R input_file.csv outdir search_radius debug", call.=FALSE)
+ } else if (length(args)==5) {
+   input_file = args[1]
+   out_dir = args[2]
+   search_radius=as.integer(args[3])
+   break_location=as.integer(args[4])
+   debug=as.integer(args[5])
+ }
+
+## 
+#input_file="~/Box/rebecca_documents/sdmmej_data/rerun_inconsistent_14Oct20/PolyA1Seq_reclassified_inconsistent.csv"
+#out_dir="~/Box/rebecca_documents/sdmmej_data/rerun_inconsistent_14Oct20/"
+#search_radius=30
+#break_location=161
+#debug=1
 
 print(paste0("Input file: " ,input_file))
 print(paste0("Output dir: ", out_dir))
 print(paste0("Search radius: ", search_radius))
 print(paste0("Break location: ", break_location))
 print(paste0("Debug: ", debug))
-
-## functions
-
-## 
-# input_file="~/Documents/git/sdmmej/test_data_2/PolyA1Seq_questions.csv"
-# out_dir="~/Documents/git/sdmmej/test_data_2/"
-# search_radius=30
-# break_location=161
-# debug=1
-
-#input_file="~/Documents/git/sdmmej/test_data/TestData_HiFiBR_Output_mod.csv"
-
 
 hifibr_input = read.csv(input_file)
 
@@ -55,9 +50,9 @@ if ( n_ref != 1){
 }
 
 # separate sequences and filter for length
-hifibr_input_filter_del = hifibr_input %>% dplyr::filter(.,READS > 10 & CLASS == 'deletion')
-hifibr_input_filter_ins = hifibr_input %>% dplyr::filter(.,READS > 10 & CLASS == 'insertion')
-hifibr_input_filter_complex = hifibr_input %>% dplyr::filter(.,READS > 10 & CLASS == 'complex')
+hifibr_input_filter_del = hifibr_input %>% dplyr::filter(.,READS >= 10 & CLASS == 'deletion')
+hifibr_input_filter_ins = hifibr_input %>% dplyr::filter(.,READS >= 10 & CLASS == 'insertion')
+hifibr_input_filter_complex = hifibr_input %>% dplyr::filter(.,READS >= 10 & CLASS == 'complex')
 
 # process deletions
 deletions = hifibr_input_filter_del$ALIGNED_SEQ
@@ -72,112 +67,41 @@ for (seq in deletions){
   aligned_deletions = c(aligned_deletions,align_string)
 }
 
-#print("we have these aligned deletions")
-#print(aligned_deletions)
+if(debug == 1){
+  print("we have these aligned deletions")
+  print(aligned_deletions)
+}
 
 # process insertions
 insertions = hifibr_input_filter_ins$ALIGNED_SEQ
 
-#print("we have these insertions")
-#print(insertions)
-
+if(debug == 1){
+  print("we have these insertions")
+  print(insertions)
+}
 # process complex
 comp_unknown = c()
 
-# ### debug
-# seq = hifibr_input_filter_complex[2, 'ALIGNED_SEQ']
-# id = hifibr_input_filter_complex[2,'ID']
-# print(seq)
-# print(id)
-# sigma <- nucleotideSubstitutionMatrix(match = 2, mismatch = -1, baseOnly = FALSE)
-# align <- pairwiseAlignment(seq, ref_seq, substitutionMatrix = sigma, gapOpening = -2,
-#                            gapExtension = -8, scoreOnly = FALSE)
-# 
-# ins_info = insertion(align)[[1]]
-# del_info = deletion(align)[[1]]
-# mis_info = mismatchTable(align)
-# 
-# ins_n = length(ins_info)
-# ins_pos = start(ins_info)
-# ins_r = abs(break_location - ins_pos)
-# 
-# del_n = length(del_info)
-# del_pos = start(del_info)
-# del_r = abs(break_location - del_pos)
-# 
-# mis_n = nmismatch(align)
-# mis_pos = mis_info$SubjectStart
-# mis_r = abs(break_location - mis_pos)
-# 
-# 
-# print(c(ins_n,ins_pos, ins_r))
-# print(c(del_n,del_pos, del_r))
-# print(c(mis_n,mis_pos, mis_r))
-# 
-# ## it seems they are always IRanges objects of length 1
-# label = ""
-# 
-# ## check number of deletions
-# deletion=deletion(align)[[1]]
-# n_del=length(deletion)
-# print(n_del)
-# # check
-# if (n_del >1){
-#   label = "complex"  
-# }
-# 
-# # check position of deletions
-# pos_del=start(deletion)[1]
-# r_del=abs(break_location-pos_del)
-# print(r_del)
-# if (r_del > search_radius){
-#   label = "complex"  
-# }
-# 
-# # check number of insertions
-# insertion=insertion(align)[[1]]
-# n_ins=length(insertion)
-# print(n_ins)
-# if (n_ins >1){
-#   label="complex"  
-# }
-# 
-# # check position of insertions
-# pos_ins=start(insertion)[1]
-# print(pos_ins)
-# 
-# r_ins=abs(break_location-pos_ins)
-# print(r_ins)
-# # check
-# if (r_ins > search_radius){
-#   label="complex" 
-# }
-# 
-# # check position of mismatch, assuming it is only one
-# pos_mis=mismatchTable(align)$SubjectStart
-# r_mis=abs(break_location-pos_mis)
-# 
-# if (r_mis > search_radius){
-#   label="complex" 
-# }
-# 
-# 
-# print(label)
-
-### 
 for (row in 1:nrow(hifibr_input_filter_complex)){
   seq = hifibr_input_filter_complex[row, 'ALIGNED_SEQ']
   id = hifibr_input_filter_complex[row,'ID']
   if(debug == 1){
-    print(id)
+    print(paste0("id is: ",id))
   }
   sigma <- nucleotideSubstitutionMatrix(match = 2, mismatch = -1, baseOnly = FALSE)
   align <- pairwiseAlignment(seq, ref_seq, substitutionMatrix = sigma, gapOpening = -2,
                              gapExtension = -8, scoreOnly = FALSE)
   
   if(debug == 1){
+    print("ref")
+    print(toString(align@subject))
+    print("seq")
+    print(toString(align@pattern))
+    print("insertion")
     print(insertion(align))
+    print("deletion")
     print(deletion(align))
+    print("mismatch")
     print(mismatchTable(align))
   }
   
@@ -188,11 +112,20 @@ for (row in 1:nrow(hifibr_input_filter_complex)){
   ins_n = length(ins_info)
   ins_pos = start(ins_info)
   ins_r = abs(break_location - ins_pos)
+  
     
   del_n = length(del_info)
   del_pos = start(del_info)
   del_r = abs(break_location - del_pos)
   
+  if(debug==1){
+    print("deln")
+    print(del_n)
+    print("del_pos")
+    print(del_pos)
+    print("del_r")
+    print(del_r)
+  }
   mis_n = nmismatch(align)
   mis_pos = mis_info$SubjectStart
   mis_r = abs(break_location - mis_pos)
@@ -206,10 +139,10 @@ for (row in 1:nrow(hifibr_input_filter_complex)){
       
       if(debug == 1){
         print("found del")
-        print("ref")
-        print(toString(align@subject))
-        print("seq")
-        print(toString(align@pattern))
+      }
+    }else{
+      if(debug == 1){
+        print(paste0("found del outside search radius at ", del_r))
       }
     }
   }else if (mis_n == 0 & del_n ==0 & ins_n == 1 ){
@@ -219,18 +152,10 @@ for (row in 1:nrow(hifibr_input_filter_complex)){
       
       if(debug == 1){
         print("found ins")
-        print("ref")
-        print(toString(align@subject))
-        print("seq")
-        print(toString(align@pattern))
       }
     }else{
       if(debug == 1){
         print("found complex (del outside search radius)")
-        print("ref")
-        print(toString(align@subject))
-        print("seq")
-        print(toString(align@pattern))
       }
       comp_unknown = c(comp_unknown, seq)
       hifibr_input[hifibr_input$ID == id,]$CLASS_final = 'complex'
@@ -242,18 +167,10 @@ for (row in 1:nrow(hifibr_input_filter_complex)){
       
       if(debug == 1){
         print("found single mismatch ins")
-        print("ref")
-        print(toString(align@subject))
-        print("seq")
-        print(toString(align@pattern))
       }
     }else{
       if(debug == 1){
         print("found complex (ins outside search radius)")
-        print("ref")
-        print(toString(align@subject))
-        print("seq")
-        print(toString(align@pattern))
       }
       comp_unknown = c(comp_unknown, seq)
       hifibr_input[hifibr_input$ID == id,]$CLASS_final = 'complex'
@@ -261,10 +178,6 @@ for (row in 1:nrow(hifibr_input_filter_complex)){
   }else{
     if(debug == 1){
       print("found complex")
-      print("ref")
-      print(toString(align@subject))
-      print("seq")
-      print(toString(align@pattern))
     }
     comp_unknown = c(comp_unknown, seq)
     hifibr_input[hifibr_input$ID == id,]$CLASS_final = 'complex'

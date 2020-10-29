@@ -1,3 +1,0 @@
-Sample ID	Deletion Length	Repair Type	Mechanism	Motif to Break	Motif to Deletion	P1 to Break	P1 to Deletion	P2 to Break	P2 to Deletion	P1 to P2	Motif Length	Break Side	Deletion to MH	Motif Sequence
-2	11	MHJ	snap-back	34	32	34	32	6	4	28	4	right	-7	ATCC/GGAT
-4	2	MHJ	loop-out	8	11	8	11	1	4	7	4	right	-1	CCCT/CCCT

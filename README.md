@@ -2,24 +2,25 @@
 
 This is a repository to work on the error prone dna repair project with the McVey lab at Tufts University.
 
-The script will be run like this on the command line, with a single argument that is the hifibr output file:
+** Dependencies ***
 
-Rscript process_hifibr.R TestData_HiFiBR_Output_mod.csv
+Python 2.7
+Python libraries: pandas
 
-You need to have the tidyverse and Biostrings library installed.
+R >=3.5
+R libraries: tidyverse, Biostrings
 
-It generates four output files in a directory like this:
+** Pipeline Script **
+This script takes one input: the path to the HiFibr output file
 
-Directory: TestData_HiFiBR_Output_mod_output
+Example usage on test data: 
+
+`sh run_pipeline.sh test_data/polyA1Seq/PolyA1Seq_testdata.csv`
+
+It generates four output files in a directory `PolyA1Seq_testdata_output`
 
 Files:
-TestData_HiFiBR_Output_mod_reclassified.csv:  same as input, but adds an “ID” column as well as a column for how the sequence was reclassified
-TestData_HiFiBR_Output_mod_complex.txt: sequences that could not be reclassified as ins or del
-TestData_HiFiBR_Output_mod_insertion.txt: all ins sequences
-TestData_HiFiBR_Output_mod_deletion.txt: all del sequences with dashes
-
-I added a few more sequences to the test data, the last three lines of the file TestData_HiFiBR_Output_mod.csv, which are:
-1.	Reference sequence
-2.	One sequence with <10 reads
-3.	One sequence with both SNP and deletion, which ends in the complex category because it can’t be reclassified
-
+`PolyA1Seq_testdata_reclassified.csv` Same format input, but adds an “ID” column as well as a column for how the sequence was reclassified
+`PolyA1Seq_testdata_complex.txt` sequences that could not be reclassified as ins or del
+`PolyA1Seq_testdata_insertion.txt` all ins sequences
+`PolyA1Seq_testdata_deletion.txt` all del sequences with dashes
