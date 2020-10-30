@@ -1,5 +1,7 @@
 #!/bin/bash
 
+## This script takes one input: the path to the HiFibr output file
+## Example usage on test data: sh run_pipeline.sh test_data/polyA1Seq/PolyA1Seq_testdata.csv
 if [ "$#" -ne 1 ]; then
     echo "Error: please supply the path to the HiFibr input file as a command line argument"
 fi
@@ -23,10 +25,10 @@ hifi_reclass=${results_dir}/${bn}_reclassified.csv
 deletion_out=${results_dir}/${bn}_deletion.txt
 insertion_out=${results_dir}/${bn}_insertion.txt
 
-source /anaconda3/etc/profile.d/conda.sh
-conda deactivate
-conda activate sdmmej
-cd ~/Documents/git/sdmmej
+#source /anaconda3/etc/profile.d/conda.sh
+#conda deactivate
+#conda activate sdmmej
+#cd ~/Documents/git/sdmmej
 
 echo "------"
 echo "Starting to process HiFibr output file"
