@@ -8,10 +8,37 @@ Python 2.7
 
 Python libraries: pandas
 
-R >=3.5
+R >=4.0
 
 R libraries: tidyverse, Biostrings
 
+**Installation**
+Installation via Miniconda3 is recommended:
+
+- Configure on the command line to use GitLab on the command line
+`git config --global user.name "tufts username"` (Tufts username is usually 5 letters followed by 2 numbers)
+`git config --global user.email "first.last@tufts.edu"`
+
+- Download repository (you will be prompted for password)
+`git clone https://gitlab.tufts.edu/rbator01/sdmmej.git`
+
+
+- Download and install Miniconda3, the following will work on Mac OS
+`curl https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh --output Miniconda3-latest-MacOSX-x86_64.sh`  
+`bash Miniconda3-latest-MacOSX-x86_64.sh`  
+follow prompts to accept license and run "conda init" on startup  
+`source ~/.bash_profile`  
+
+- Create Conda environment  
+`conda config --add channels conda-forge`  
+`conda config --add channels r`  
+`conda config --add channels bioconda`  
+`conda create -n sdmmej  r-base=4.0.3 r-dplyr r-stringr bioconductor-biostrings python=2.7 pandas`  
+
+
+- To activate and deactivate you will use
+`conda activate sdmmej`  
+`conda deactivate sdmmej`  
 **Pipeline Script**
 
 This script takes the path to the HiFibr output file as the single command line argument.
@@ -19,6 +46,8 @@ Other default arguments are set within the script.
 
 Example usage on test data: 
 
+`conda activate sdmmej`
+`cd sdmmej-master`
 `sh run_pipeline.sh test_data/polyA1Seq/PolyA1Seq_testdata.csv`
 
 It generates output files in a directory `PolyA1Seq_testdata_output` with the following output files  
