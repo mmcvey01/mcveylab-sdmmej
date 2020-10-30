@@ -10,9 +10,7 @@ Installation via Miniconda3 is recommended:
 `git config --global user.email "first.last@tufts.edu"`  
 
 - Download repository  
-
 `git clone https://gitlab.tufts.edu/rbator01/sdmmej.git`
-
 You will be prompted for password.
 Note that you can also download the repository from the web browser if there are problems configuring command line git access.
 
