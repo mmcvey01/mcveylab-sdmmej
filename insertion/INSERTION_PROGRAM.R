@@ -13,7 +13,7 @@ args = commandArgs(trailingOnly=TRUE)
 suppressPackageStartupMessages(library(tidyverse))
 suppressPackageStartupMessages(library(Biostrings))
 suppressPackageStartupMessages(library(stringr))
-suppressPackageStartupMessages(library(Biostrings))
+suppressPackageStartupMessages(library(dplyr))
 
 ##test if there is at least one argument: if not, return an error
 if (length(args)<5) {
@@ -31,8 +31,18 @@ if (length(args)<5) {
 a<-read.csv(insertion_in)
 
 ## get reference
-hifibr_input = read.csv(hifi_in)
+hifibr_input = read.csv(hifi_in,header=T)
+
+
 ref = hifibr_input %>% dplyr::filter(., CLASS_final == 'exact')
+n_ref = nrow(ref)
+
+if ( n_ref != 1){
+  print(paste0("ERROR: Found ", n_ref, " reference sequences in Hifibr output."))
+  quit(save = "no", status = 1, runLast = FALSE)
+}
+
+
 ref = ref$ALIGNED_SEQ
 
 n <- search_radius  # number of bases to the left and right of the break you want to search of repeated motifs

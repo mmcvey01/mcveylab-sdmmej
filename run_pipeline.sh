@@ -19,16 +19,12 @@ debug=0
 bn=$( basename ${input%.csv} )
 results_dir=$( pwd )/$( dirname $input )/${bn}_output
 mkdir -p ${results_dir}
-echo "Results will be located in ${results_dir}"
 
 hifi_reclass=${results_dir}/${bn}_reclassified.csv
 deletion_out=${results_dir}/${bn}_deletion.txt
 insertion_out=${results_dir}/${bn}_insertion.txt
 
-#source /anaconda3/etc/profile.d/conda.sh
-#conda deactivate
-#conda activate sdmmej
-#cd ~/Documents/git/sdmmej
+echo ${hifi_reclass}
 
 echo "------"
 echo "Starting to process HiFibr output file"
@@ -39,10 +35,10 @@ Rscript process_hifibr.R $input $results_dir $search_radius $breakpoint $debug
 echo "------"
 echo "Done Hifiber processing"
 echo "------"
-echo "Starting deletion consistency script"
+echo "Starting deletion consistency script, see log ${bn}_deletion.log"
 
 cd deletion/
-python SDMMEJDeletionProgram_cli.py -hi ${hifi_reclass} -del ${deletion_out} -n $breakpoint -out $results_dir
+python SDMMEJDeletionProgram_cli.py -hi ${hifi_reclass} -del ${deletion_out} -n $breakpoint -out $results_dir > ${results_dir}/${bn}_deletion.log
 
 echo "------"
 echo "Done deletion script"
@@ -58,3 +54,4 @@ echo "------"
 echo "Done insertion script"
 echo "------"
 
+echo "Results will be located in ${results_dir}"

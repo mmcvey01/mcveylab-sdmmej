@@ -44,6 +44,8 @@ ref = hifibr_input %>% dplyr::filter(., CLASS == 'exact')
 ref_seq = ref$ALIGNED_SEQ
 
 n_ref = nrow(ref)
+print(n_ref)
+
 if ( n_ref != 1){
   print(paste0("ERROR: Found ", n_ref, " reference sequences in Hifibr output."))
   quit(save = "no", status = 1, runLast = FALSE)
@@ -198,5 +200,5 @@ write(insertions, file = paste0(out_dir,"/",out_string,"_insertion.txt"),append 
 write(comp_unknown, file = paste0(out_dir,"/", out_string,"_complex.txt"),append = FALSE, sep = "\n")
 
 ## output file
-write.csv(hifibr_input, file = paste0(out_dir,"/", out_string,"_reclassified.csv"), row.names = FALSE)
+write.csv(hifibr_input, file = paste0(out_dir,"/", out_string,"_reclassified.csv"), row.names = FALSE,quote=F)
 
