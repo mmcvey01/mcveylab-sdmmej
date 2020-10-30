@@ -2,17 +2,7 @@
 
 This is a repository to work on the error prone dna repair project with the McVey lab at Tufts University.
 
-**Dependencies**
-
-Python 2.7
-
-Python libraries: pandas
-
-R >=4.0
-
-R libraries: tidyverse, Biostrings
-
-**Installation**
+**Installation**  
 Installation via Miniconda3 is recommended:
 
 - Configure on the command line to use GitLab on the command line
@@ -22,6 +12,7 @@ Installation via Miniconda3 is recommended:
 - Download repository (you will be prompted for password)
 `git clone https://gitlab.tufts.edu/rbator01/sdmmej.git`
 
+Note that you can also download the repository from the web browser if there are problems configuring command line git access.
 
 - Download and install Miniconda3, the following will work on Mac OS
 `curl https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh --output Miniconda3-latest-MacOSX-x86_64.sh`  
