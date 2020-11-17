@@ -20,7 +20,7 @@ Note that you can also download the repository from the web browser if there are
 follow prompts to accept license and "yes" to running "conda init" on startup  
 `source ~/.bash_profile`  
 
-- Create Conda environment  
+- Create Conda environment called sdmmej  
 `conda config --add channels conda-forge`  
 `conda config --add channels r`  
 `conda config --add channels bioconda`  
