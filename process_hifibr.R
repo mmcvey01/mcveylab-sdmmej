@@ -197,6 +197,7 @@ insertions = c("RECONSTRUCTED_SEQ",insertions)
 write(insertions, file = paste0(out_dir,"/",out_string,"_insertion.txt"),append = FALSE, sep = "\n")
 
 ## unknown complex
+comp_unknown = c("RECONSTRUCTED_SEQ",comp_unknown)
 write(comp_unknown, file = paste0(out_dir,"/", out_string,"_complex.txt"),append = FALSE, sep = "\n")
 
 ## output file

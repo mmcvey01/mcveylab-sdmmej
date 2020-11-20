@@ -54,7 +54,10 @@ This generates output files in a directory `PolyA1Seq_testdata_output` with the 
 `PolyA1Seq_testdata_deletion_consistency_log.txt`  
 `PolyA1Seq_testdata_deletion_consistency_table.txt`  
 
-- Outputs from Insertoin script  
-`PolyA1Seq_testdatatestdata_insertion_consistency2.csv`  
-`PolyA1Seq_testdatatestdata_insertion_consistency_long2.csv`  
-`PolyA1Seq_testdatatestdata_insertion_alignment2.csv`
+- Outputs from Insertionn script, which is run on both insertions and complex separately
+`PolyA1Seq_testdata_insertion_insertion_consistency2.csv`  
+`PolyA1Seq_testdata_insertion_insertion_consistency_long2.csv`  
+`PolyA1Seq_testdata_insertion_insertion_alignment2.csv`
+`PolyA1Seq_testdata_complex_insertion_consistency2.csv`
+`PolyA1Seq_testdata_complex_insertion_consistency_long2.csv`
+`PolyA1Seq_testdata_complex_insertion_alignment2.csv`

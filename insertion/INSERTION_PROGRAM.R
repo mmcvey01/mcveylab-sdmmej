@@ -28,7 +28,7 @@ if (length(args)<5) {
   
 }
 
-a<-read.csv(insertion_in)
+a_initial<-read.csv(insertion_in)
 
 ## get reference
 hifibr_input = read.csv(hifi_in,header=T)
@@ -47,8 +47,13 @@ ref = ref$ALIGNED_SEQ
 
 n <- search_radius  # number of bases to the left and right of the break you want to search of repeated motifs
 p <- 10 # number of bases to the left and right of the initial repeat motif to search for homology
+
+### for naming the output files
 #plasmid <- "test_data_m6"
 plasmid <- gsub("_reclassified.csv","",basename(hifi_in))
+type <- gsub(plasmid, "", basename(insertion_in))
+type <- gsub(".txt", "", type)
+type <- gsub("_", "", type)
 
 #L <- "GGAAAAAATTCGTACTTTGGAGTACGAAATGCGTCGTTTAGAGCAGCAGCCGAATTCGGTACATTACCCTGTTAT"
 L = substr(ref,0,nick)
@@ -68,21 +73,55 @@ sL1 <- substring(L, 1, (l-k1-1):l)
 sR1 <- substring(R, 1:(r-k2-1),r)
 
 a2=NULL    # create empty vector to insert left del boundary
-for (i in a[, 1]){
+a3=NULL    # create empty vector to insert RIGHT del boundary
+
+## this loop checks to see if sequences meet the criteria
+keep_seq=c()
+for (n in 1:nrow(a_initial)){
+  i=a_initial[n, 1]
+  lbb_found=0
+  rbb_found=0
+  
   lb <- str_locate(as.character(i), sL1)
   lb <- na.omit(lb)
   lbb <- lb[nrow(lb),2]
-  a2[i] = lbb
-}
-
-
-a3=NULL    # create empty vector to insert RIGHT del boundary
-for (i in a[, 1]){
+  
+  if (length(lbb) > 0){
+    lbb_found=1
+  }
+  
   rb <- str_locate(as.character(i), sR1)
   rb <- na.omit(rb)
   rbb <- rb[1,1]
+  
+  if (length(rbb)>0){
+    rbb_found=1
+  }
+  if ((lbb_found & rbb_found)){
+    keep_seq=c(keep_seq,i)
+  }else{
+    print("skipping seq that doesn't match any L or R")
+    print(i)
+  }
+}
+
+a=data.frame("RECONSTRUCTED_SEQ" = keep_seq)
+for (n in 1:nrow(a)){
+
+  i=a[n, 1]
+  
+  lb <- str_locate(as.character(i), sL1)
+  lb <- na.omit(lb)
+  lbb <- lb[nrow(lb),2]
+  
+  rb <- str_locate(as.character(i), sR1)
+  rb <- na.omit(rb)
+  rbb <- rb[1,1]
+  
+  a2[i] = lbb
   a3[i] = rbb
 }
+
 a4 <- cbind(as.data.frame(a2), as.data.frame(a3))    # combine left and right del boundary
 a5 <- cbind(a, a4)    # combine seq and del boundary
 names(a5) <- c("RECONSTRUCTED_SEQ","left_del", "right_del")    # rename columns for ease
@@ -407,9 +446,9 @@ test2 <- test[!duplicated(test[,16]),]
 pretty <- cbind(ID=test2[,1], as.data.frame(test2[,15]), as.data.frame(test2[,14])) 
 colnames(pretty)[2:3] <- c("insertion_alignment", "mechanism")
 
-output1 <- paste0(out_dir, "/", plasmid, "testdata_insertion_consistency2.csv")
-output2 <- paste0(out_dir, "/", plasmid, "testdata_insertion_consistency_long2.csv")
-output3 <- paste0(out_dir, "/", plasmid, "testdata_insertion_alignment2.csv")
+output1 <- paste0(out_dir, "/", plasmid, "_",type,"_insertion_consistency2.csv")
+output2 <- paste0(out_dir, "/", plasmid, "_",type,"_insertion_consistency_long2.csv")
+output3 <- paste0(out_dir, "/", plasmid, "_",type,"_insertion_alignment2.csv")
 write.csv(master2, output1)
 write.csv(test2, output2)
 write.csv(pretty, output3)

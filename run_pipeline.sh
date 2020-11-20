@@ -23,6 +23,7 @@ mkdir -p ${results_dir}
 hifi_reclass=${results_dir}/${bn}_reclassified.csv
 deletion_out=${results_dir}/${bn}_deletion.txt
 insertion_out=${results_dir}/${bn}_insertion.txt
+complex_out=${results_dir}/${bn}_complex.txt
 
 echo ${hifi_reclass}
 
@@ -44,14 +45,26 @@ echo "------"
 echo "Done deletion script"
 echo "------"
 echo "------"
-echo "Starting insertion consistency script"
+echo "Starting insertion consistency script on insertions"
 echo "------"
 
 cd ../insertion/
 Rscript INSERTION_PROGRAM.R ${hifi_reclass} ${insertion_out} $results_dir $breakpoint $search_radius
 
 echo "------"
-echo "Done insertion script"
+echo "Done insertion script on insertions"
 echo "------"
+
+echo "------"
+echo "Starting insertion consistency script on complex"
+echo "------"
+
+cd ../insertion/
+Rscript INSERTION_PROGRAM.R ${hifi_reclass} ${complex_out} $results_dir $breakpoint $search_radius
+
+echo "------"
+echo "Done insertion script on complex"
+echo "------"
+
 
 echo "Results will be located in ${results_dir}"
