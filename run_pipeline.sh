@@ -17,7 +17,8 @@ debug=0
 
 
 bn=$( basename ${input%.csv} )
-results_dir=$( pwd )/$( dirname $input )/${bn}_output
+#results_dir=$( pwd )/$( dirname $input )/${bn}_output
+results_dir=$( dirname $input )/${bn}_output
 mkdir -p ${results_dir}
 
 hifi_reclass=${results_dir}/${bn}_reclassified.csv

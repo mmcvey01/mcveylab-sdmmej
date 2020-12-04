@@ -28,8 +28,8 @@ if (length(args)<5) {
   
 }
 
-a_initial<-read.csv(insertion_in)
-
+#a_initial<-read.csv(insertion_in)
+a<-read.csv(insertion_in)
 ## get reference
 hifibr_input = read.csv(hifi_in,header=T)
 
@@ -57,70 +57,90 @@ type <- gsub("_", "", type)
 
 #L <- "GGAAAAAATTCGTACTTTGGAGTACGAAATGCGTCGTTTAGAGCAGCAGCCGAATTCGGTACATTACCCTGTTAT"
 L = substr(ref,0,nick)
+print("left of nick")
+print(L)
 
 #R <- "TTATCCCTAGCTATGGTCTGCGCTACTAGTGGATCTGGGGCCGCATAGGCCATCCTCTAGAGTCGACCTCGAACGTAAACGTTAACGTAACGTTAACTCG"
 l=length(ref)
 R <- substr(ref,nick+1,nchar(ref)) 
+print("right of nick")
+print(R)
 
-if (substr(R,0,4) == 'TTAT'){
- L =  paste0(L,'TAT')
-}
 l <- nchar(L) # number of nucleotides of the left hand sequence
 r <- nchar(R) # number of nucleotides of the right hand sequence
+# k1 <- 30 # how far you want to cut back to search, this needs to to be adjusted based on how large the deletions are, but i think this covers up to 30 bp of deletion on either side.
+# k2 <- 30
 k1 <- 30 # how far you want to cut back to search, this needs to to be adjusted based on how large the deletions are, but i think this covers up to 30 bp of deletion on either side.
 k2 <- 30
+
 sL1 <- substring(L, 1, (l-k1-1):l)
 sR1 <- substring(R, 1:(r-k2-1),r)
 
 a2=NULL    # create empty vector to insert left del boundary
-a3=NULL    # create empty vector to insert RIGHT del boundary
-
-## this loop checks to see if sequences meet the criteria
-keep_seq=c()
-for (n in 1:nrow(a_initial)){
-  i=a_initial[n, 1]
-  lbb_found=0
-  rbb_found=0
-  
+for (i in a[, 1]){
   lb <- str_locate(as.character(i), sL1)
   lb <- na.omit(lb)
   lbb <- lb[nrow(lb),2]
-  
-  if (length(lbb) > 0){
-    lbb_found=1
-  }
-  
-  rb <- str_locate(as.character(i), sR1)
-  rb <- na.omit(rb)
-  rbb <- rb[1,1]
-  
-  if (length(rbb)>0){
-    rbb_found=1
-  }
-  if ((lbb_found & rbb_found)){
-    keep_seq=c(keep_seq,i)
-  }else{
-    print("skipping seq that doesn't match any L or R")
-    print(i)
-  }
-}
-
-a=data.frame("RECONSTRUCTED_SEQ" = keep_seq)
-for (n in 1:nrow(a)){
-
-  i=a[n, 1]
-  
-  lb <- str_locate(as.character(i), sL1)
-  lb <- na.omit(lb)
-  lbb <- lb[nrow(lb),2]
-  
-  rb <- str_locate(as.character(i), sR1)
-  rb <- na.omit(rb)
-  rbb <- rb[1,1]
-  
   a2[i] = lbb
+}
+a3=NULL    # create empty vector to insert RIGHT del boundary
+for (i in a[, 1]){
+  rb <- str_locate(as.character(i), sR1)
+  rb <- na.omit(rb)
+  rbb <- rb[1,1]
   a3[i] = rbb
 }
+
+## this is necessary to run the complex sequences, but there is an error somewhere
+# a2=NULL    # create empty vector to insert left del boundary
+# a3=NULL    # create empty vector to insert RIGHT del boundary
+# 
+# ## this loop checks to see if sequences meet the criteria
+# keep_seq=c()
+# for (n in 1:nrow(a_initial)){
+#   i=a_initial[n, 1]
+#   lbb_found=0
+#   rbb_found=0
+#   
+#   lb <- str_locate(as.character(i), sL1)
+#   lb <- na.omit(lb)
+#   lbb <- lb[nrow(lb),2]
+#   
+#   if (length(lbb) > 0){
+#     lbb_found=1
+#   }
+#   
+#   rb <- str_locate(as.character(i), sR1)
+#   rb <- na.omit(rb)
+#   rbb <- rb[1,1]
+#   
+#   if (length(rbb)>0){
+#     rbb_found=1
+#   }
+#   if ((lbb_found & rbb_found)){
+#     keep_seq=c(keep_seq,i)
+#   }else{
+#     print("skipping seq that doesn't match any L or R")
+#     print(i)
+#   }
+# }
+
+# a=data.frame("RECONSTRUCTED_SEQ" = keep_seq)
+# for (n in 1:nrow(a)){
+# 
+#   i=a[n, 1]
+#   
+#   lb <- str_locate(as.character(i), sL1)
+#   lb <- na.omit(lb)
+#   lbb <- lb[nrow(lb),2]
+#   
+#   rb <- str_locate(as.character(i), sR1)
+#   rb <- na.omit(rb)
+#   rbb <- rb[1,1]
+#   
+#   a2[i] = lbb
+#   a3[i] = rbb
+# }
 
 a4 <- cbind(as.data.frame(a2), as.data.frame(a3))    # combine left and right del boundary
 a5 <- cbind(a, a4)    # combine seq and del boundary
@@ -135,7 +155,7 @@ a5$ID <- paste(a5$plasmid, 1:nrow(a5), sep="-")
 
 # SOMETHING IS WRONG WITH NO.BUTT!!!! 06282019
 no.butt <- a5
-# [-which(a5$insertion == ""), ] # dont want to have the insertion sequences that are all fucky, i.e. have ttat 
+#[-which(a5$insertion == ""), ] # dont want to have the insertion sequences that are all fucky, i.e. have ttat 
 # overhang insert define the region around the break site you want to look for homology. NOTE: value is one less than
 # desired...dont worry
 
