@@ -39,8 +39,8 @@ echo "Done Hifiber processing"
 echo "------"
 echo "Starting deletion consistency script, see log ${bn}_deletion.log"
 
-cd deletion/
-python SDMMEJDeletionProgram_cli.py -hi ${hifi_reclass} -del ${deletion_out} -n $breakpoint -out $results_dir > ${results_dir}/${bn}_deletion.log
+#cd deletion/
+python deletion/SDMMEJDeletionProgram_cli.py -hi ${hifi_reclass} -del ${deletion_out} -n $breakpoint -out $results_dir > ${results_dir}/${bn}_deletion.log
 
 echo "------"
 echo "Done deletion script"
@@ -49,8 +49,8 @@ echo "------"
 echo "Starting insertion consistency script on insertions"
 echo "------"
 
-cd ../insertion/
-Rscript INSERTION_PROGRAM.R ${hifi_reclass} ${insertion_out} $results_dir $breakpoint $search_radius
+#cd ../insertion/
+Rscript insertion/INSERTION_PROGRAM.R ${hifi_reclass} ${insertion_out} $results_dir $breakpoint $search_radius
 
 echo "------"
 echo "Done insertion script on insertions"
@@ -60,8 +60,8 @@ echo "------"
 echo "Starting insertion consistency script on complex"
 echo "------"
 
-cd ../insertion/
-Rscript INSERTION_PROGRAM.R ${hifi_reclass} ${complex_out} $results_dir $breakpoint $search_radius
+#cd ../insertion/
+Rscript insertion/INSERTION_PROGRAM.R ${hifi_reclass} ${complex_out} $results_dir $breakpoint $search_radius
 
 echo "------"
 echo "Done insertion script on complex"

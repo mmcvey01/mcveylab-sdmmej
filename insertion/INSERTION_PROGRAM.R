@@ -15,7 +15,7 @@ suppressPackageStartupMessages(library(Biostrings))
 suppressPackageStartupMessages(library(stringr))
 suppressPackageStartupMessages(library(dplyr))
 
-##test if there is at least one argument: if not, return an error
+#test if there is at least one argument: if not, return an error
 if (length(args)<5) {
   print(length(args))
   stop("Usage: Rscript INSERTION_PROGRAM.R hifibr_reclassified.csv insertion_file.txt nick_location outdir", call.=FALSE)
@@ -25,10 +25,15 @@ if (length(args)<5) {
   out_dir = args[3]
   nick = as.integer(args[4])
   search_radius=as.integer(args[5])
-  
+
 }
 
-#a_initial<-read.csv(insertion_in)
+# hifi_in = "~/Documents/git/sdmmej/test_data/polyA1Seq/PolyA1Seq_testdata_output/PolyA1Seq_testdata_reclassified.csv"
+# insertion_in = "~/Documents/git/sdmmej/test_data/polyA1Seq/PolyA1Seq_testdata_output/PolyA1Seq_testdata_complex.txt"
+# out_dir = "~/Documents/git/sdmmej/test_data/polyA1Seq/PolyA1Seq_testdata_output/"
+# nick = 161
+# search_radius=30
+
 a<-read.csv(insertion_in)
 ## get reference
 hifibr_input = read.csv(hifi_in,header=T)
@@ -74,6 +79,7 @@ k1 <- 30 # how far you want to cut back to search, this needs to to be adjusted 
 k2 <- 30
 
 sL1 <- substring(L, 1, (l-k1-1):l)
+print(sL1)
 sR1 <- substring(R, 1:(r-k2-1),r)
 
 a2=NULL    # create empty vector to insert left del boundary
@@ -81,72 +87,34 @@ for (i in a[, 1]){
   lb <- str_locate(as.character(i), sL1)
   lb <- na.omit(lb)
   lbb <- lb[nrow(lb),2]
-  a2[i] = lbb
+  if (length(lbb) == 0){
+    print(paste0("No match found left of boundary for sequenc ", i))
+    a2[i] = 0
+  }else{
+    a2[i] = lbb
+  }
 }
 a3=NULL    # create empty vector to insert RIGHT del boundary
 for (i in a[, 1]){
   rb <- str_locate(as.character(i), sR1)
   rb <- na.omit(rb)
   rbb <- rb[1,1]
-  a3[i] = rbb
+  if (length(rbb) == 0){
+    print(paste0("No match found reft of boundary for sequenc ", i))
+    a3[i] = 0
+  }else{
+    a3[i] = rbb
+  }
 }
 
-## this is necessary to run the complex sequences, but there is an error somewhere
-# a2=NULL    # create empty vector to insert left del boundary
-# a3=NULL    # create empty vector to insert RIGHT del boundary
-# 
-# ## this loop checks to see if sequences meet the criteria
-# keep_seq=c()
-# for (n in 1:nrow(a_initial)){
-#   i=a_initial[n, 1]
-#   lbb_found=0
-#   rbb_found=0
-#   
-#   lb <- str_locate(as.character(i), sL1)
-#   lb <- na.omit(lb)
-#   lbb <- lb[nrow(lb),2]
-#   
-#   if (length(lbb) > 0){
-#     lbb_found=1
-#   }
-#   
-#   rb <- str_locate(as.character(i), sR1)
-#   rb <- na.omit(rb)
-#   rbb <- rb[1,1]
-#   
-#   if (length(rbb)>0){
-#     rbb_found=1
-#   }
-#   if ((lbb_found & rbb_found)){
-#     keep_seq=c(keep_seq,i)
-#   }else{
-#     print("skipping seq that doesn't match any L or R")
-#     print(i)
-#   }
-# }
-
-# a=data.frame("RECONSTRUCTED_SEQ" = keep_seq)
-# for (n in 1:nrow(a)){
-# 
-#   i=a[n, 1]
-#   
-#   lb <- str_locate(as.character(i), sL1)
-#   lb <- na.omit(lb)
-#   lbb <- lb[nrow(lb),2]
-#   
-#   rb <- str_locate(as.character(i), sR1)
-#   rb <- na.omit(rb)
-#   rbb <- rb[1,1]
-#   
-#   a2[i] = lbb
-#   a3[i] = rbb
-# }
 
 a4 <- cbind(as.data.frame(a2), as.data.frame(a3))    # combine left and right del boundary
 a5 <- cbind(a, a4)    # combine seq and del boundary
 names(a5) <- c("RECONSTRUCTED_SEQ","left_del", "right_del")    # rename columns for ease
+
 del_seq <- paste(substring(a5$RECONSTRUCTED_SEQ, first = 1, last = a5$left_del),    # create sequence without the insertion sequence
                  substring(a5$RECONSTRUCTED_SEQ, first = a5$right_del, last = nchar(as.character(a5$RECONSTRUCTED_SEQ))),sep = "") 
+
 a5$del_seq <- del_seq
 ins <- substring(a5$RECONSTRUCTED_SEQ, first = a5$left_del+1, last = a5$right_del-1)    # extract inserted sequence
 a5$insertion <- ins    # Now I have insertion added to table
@@ -472,3 +440,4 @@ output3 <- paste0(out_dir, "/", plasmid, "_",type,"_insertion_alignment2.csv")
 write.csv(master2, output1)
 write.csv(test2, output2)
 write.csv(pretty, output3)
+
