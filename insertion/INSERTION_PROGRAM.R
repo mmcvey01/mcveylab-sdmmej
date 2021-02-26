@@ -28,13 +28,9 @@ if (length(args)<5) {
 
 }
 
-# hifi_in = "~/Documents/git/sdmmej/test_data/polyA1Seq/PolyA1Seq_testdata_output/PolyA1Seq_testdata_reclassified.csv"
-# insertion_in = "~/Documents/git/sdmmej/test_data/polyA1Seq/PolyA1Seq_testdata_output/PolyA1Seq_testdata_complex.txt"
-# out_dir = "~/Documents/git/sdmmej/test_data/polyA1Seq/PolyA1Seq_testdata_output/"
-# nick = 161
-# search_radius=30
 
 a<-read.csv(insertion_in)
+
 ## get reference
 hifibr_input = read.csv(hifi_in,header=T)
 
@@ -54,18 +50,15 @@ n <- search_radius  # number of bases to the left and right of the break you wan
 p <- 10 # number of bases to the left and right of the initial repeat motif to search for homology
 
 ### for naming the output files
-#plasmid <- "test_data_m6"
 plasmid <- gsub("_reclassified.csv","",basename(hifi_in))
 type <- gsub(plasmid, "", basename(insertion_in))
 type <- gsub(".txt", "", type)
 type <- gsub("_", "", type)
 
-#L <- "GGAAAAAATTCGTACTTTGGAGTACGAAATGCGTCGTTTAGAGCAGCAGCCGAATTCGGTACATTACCCTGTTAT"
 L = substr(ref,0,nick)
 print("left of nick")
 print(L)
 
-#R <- "TTATCCCTAGCTATGGTCTGCGCTACTAGTGGATCTGGGGCCGCATAGGCCATCCTCTAGAGTCGACCTCGAACGTAAACGTTAACGTAACGTTAACTCG"
 l=length(ref)
 R <- substr(ref,nick+1,nchar(ref)) 
 print("right of nick")
@@ -73,13 +66,11 @@ print(R)
 
 l <- nchar(L) # number of nucleotides of the left hand sequence
 r <- nchar(R) # number of nucleotides of the right hand sequence
-# k1 <- 30 # how far you want to cut back to search, this needs to to be adjusted based on how large the deletions are, but i think this covers up to 30 bp of deletion on either side.
-# k2 <- 30
+
 k1 <- 30 # how far you want to cut back to search, this needs to to be adjusted based on how large the deletions are, but i think this covers up to 30 bp of deletion on either side.
 k2 <- 30
 
 sL1 <- substring(L, 1, (l-k1-1):l)
-print(sL1)
 sR1 <- substring(R, 1:(r-k2-1),r)
 
 a2=NULL    # create empty vector to insert left del boundary
@@ -88,7 +79,7 @@ for (i in a[, 1]){
   lb <- na.omit(lb)
   lbb <- lb[nrow(lb),2]
   if (length(lbb) == 0){
-    print(paste0("No match found left of boundary for sequenc ", i))
+    print(paste0("No match found left of boundary for sequence ", i))
     a2[i] = 0
   }else{
     a2[i] = lbb
