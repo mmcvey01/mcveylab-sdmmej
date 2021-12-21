@@ -24,7 +24,7 @@ follow prompts to accept license and "yes" to running "conda init" on startup
 `conda config --add channels conda-forge`  
 `conda config --add channels r`  
 `conda config --add channels bioconda`  
-`conda create -n sdmmej r-base=4.0.3 r-dplyr r-stringr bioconductor-biostrings python=2.7 pandas`  
+`conda create -n sdmmej r-base=4.0.3 r-dplyr r-stringr bioconductor-biostrings python=2.7 pandas r-tidyverse`  
 
 
 - To activate and deactivate you will use  
