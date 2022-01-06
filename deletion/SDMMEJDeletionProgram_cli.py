@@ -70,6 +70,8 @@ outfile = open(outfile, "w")
 outfile2 = dir_path + "/" + base_name + "_consistency_table.txt"
 outfile2 = open(outfile2, "w")
 
+outfile3 = dir_path + "/" + base_name + "_consistency_log_subset.csv"
+outfile3 = open(outfile3, "w")
 
 junction_list = []
 junction_indices_list = []
@@ -635,9 +637,12 @@ print headerD1_3
 outfile.write(str(headerD1_3))
 outfile.write("\n")
 
+
+outfile3.write("SEQUENCES OF SD-MMEJ CONSISTENT ABJs")
 for line in tablestringsD1:
     print line
     outfile.write(str(line))
+    outfile3.write(str(line))
     outfile.write("\n")
 
 print headerD1_3
@@ -689,8 +694,12 @@ print headerD1_3
 outfile.write(str(headerD1_3))
 outfile.write("\n")
 
+outfile3.write("SEQUENCES OF *NON* SD-MMEJ CONSISTENT ABJs")
+
 for line in tablestringsD2:
-    print line
+    #print line
+    outfile3.write(str(line))
+
     outfile.write(str(line))
     outfile.write("\n")
 print headerD1_3
@@ -1097,8 +1106,10 @@ print headerE1_3
 outfile.write(str(headerE1_3))
 outfile.write("\n")
 
+outfile3.write(" SEQUENCES OF SD-MMEJ CONSISTENT MHJs")
 for line in tablestringsE1:
     print line
+    outfile3.write(str(line))
     outfile.write(str(line))
     outfile.write("\n")
 print headerE1_3
@@ -1143,8 +1154,10 @@ print headerE1_3
 outfile.write(str(headerE1_3))
 outfile.write("\n")
 
+outfile3.write("SEQUENCES OF *NON* SD-MMEJ CONSISTENT MHJs")
 for line in tablestringsE2:
     print line
+    outfile3.write(str(line))
     outfile.write(str(line))
     outfile.write("\n")
 
@@ -1540,6 +1553,7 @@ print
 print "exiting SD-MMEJ data analysis program..."
 outfile.close()
 outfile2.close()
+outfile3.close()
 
 
 
