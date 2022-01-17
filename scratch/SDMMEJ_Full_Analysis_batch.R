@@ -60,6 +60,10 @@ out_consistency_true_ins=paste0(outfolder,in_template_name, "_SD-MMEJ_consistenc
 a=read.csv(in_hifibr_reclassified)
 names(a)[names(a) == "ALIGNED_SEQ"] <- "RECONSTRUCTED_SEQ"
 
+#### get the length of the final sequence
+exact_sequence = subset(a, CLASS=="exact")
+exact_sequence_length = nchar(as.character(exact_sequence$RECONSTRUCTED_SEQ))
+
 #### filter for more than 9 reads
 a10 <- subset(a, READS>9)
 
@@ -153,10 +157,11 @@ b <- read.csv(in_comp_consistency) # VARIABLE
 #colnames(b)
 
 ab <-rbind(a,b)
-#### what is 127 parameter?
-# Input length of the full sequence
 
-ab$RIGHT_DEL <- 127-(nchar(as.character(ab$RECONSTRUCTED_SEQ))-ab$right_del+1)
+#### change this to use the calculated exact sequence length
+####ab$RIGHT_DEL <- 127-(nchar(as.character(ab$RECONSTRUCTED_SEQ))-ab$right_del+1)
+ab$RIGHT_DEL <- exact_sequence_length -(nchar(as.character(ab$RECONSTRUCTED_SEQ))-ab$right_del+1)
+
 #### these are all negative numbers
 unique(ab$RIGHT_DEL)
 
@@ -171,7 +176,6 @@ ins<-rbind(ins1,comp)
 ab.t <- subset(ab, consistency==TRUE)
 colnames(ins)[19] <- "RECONSTRUCTED_SEQ"
 mutIw7a <- merge(ins, ab.t, by="RECONSTRUCTED_SEQ")
-view(mutIw7a)
 
 # DIRECT REPEAT - RIGHT SIDE
 mutIw7a.dr <- mutIw7a[!is.na(mutIw7a$DR_START),]
@@ -185,11 +189,11 @@ mutIw7a.dr <- mutIw7a.dr[!is.na(mutIw7a.dr$RM),]
 mutIw7a.dr$insertion_length <- nchar(as.character(mutIw7a.dr$insertion))
 # Input length of the full sequence
 mutIw7a.dr$DR_START_TRUE <- ifelse(mutIw7a.dr$side=="RIGHT", 
-                                   (127-(nchar(as.character(mutIw7a.dr$RECONSTRUCTED_SEQ))-mutIw7a.dr$DR_START-mutIw7a.dr$insertion_length)),
+                                   (exact_sequence_length-(nchar(as.character(mutIw7a.dr$RECONSTRUCTED_SEQ))-mutIw7a.dr$DR_START-mutIw7a.dr$insertion_length)),
                                    mutIw7a.dr$DR_START) # Gets the true start point for the direct repeat
 # if right side it's 325-actual sequence length-DR_START-insertion length, if left its the DR_START
 mutIw7a.dr$DR_END_TRUE <- ifelse(mutIw7a.dr$side=="RIGHT", 
-                                 (127-(nchar(as.character(mutIw7a.dr$RECONSTRUCTED_SEQ))- mutIw7a.dr$DR_END-mutIw7a.dr$insertion_length)),
+                                 (exact_sequence_length-(nchar(as.character(mutIw7a.dr$RECONSTRUCTED_SEQ))- mutIw7a.dr$DR_END-mutIw7a.dr$insertion_length)),
                                  mutIw7a.dr$DR_END) # Gets the true end point for the direct repeat
 mutIw7a.dr$motif_ID <- paste(mutIw7a.dr$ID.y,mutIw7a.dr$DR_START_TRUE,mutIw7a.dr$DR_END_TRUE,sep="-")
 mutIw7a.dr <- mutIw7a.dr[!duplicated(mutIw7a.dr$motif_ID),] # Removes all duplicate repeat motif IDs
@@ -280,10 +284,9 @@ p + geom_boxplot(aes(ymin = p2_start2, lower = p2_start2, middle = p2_start2,
   scale_colour_gradientn(colours = c("red","yellow","green","lightblue","darkblue"),
                          values=c(1.0,0.8,0.6,0.4,0.2,0)) +
   scale_fill_gradientn(colours = c("red","yellow","green","lightblue","darkblue"),
-                       values=c(1.0,0.8,0.6,0.4,0.2,0))
+                       values=c(1.0,0.8,0.6,0.4,0.2,0))+
 
-#### until this point is does make a plot, but the below coordinate range seems 
-#### not to agree with the plot data, so the plot becomes blank
+### I'm not sure these value/ labels are right for all sequences
 +
   scale_y_continuous(limits=c(130,190),
                      breaks=51:125,
@@ -293,7 +296,7 @@ p + geom_boxplot(aes(ymin = p2_start2, lower = p2_start2, middle = p2_start2,
                                 "A", "C", "T","A", "G", "T", "G", "G", "A", "T","C", "T", "G", "G", "A", 
                                 "T", "C", "C","T","C","T","A","G","A","G","T","C"), #CCCTAGC  TATGGTC   TGCGCTACT   AGTGGATCTGGGGCC   GCATAGGCC
                      name = "Nucleotide",
-                     expand=c(0,0))+
+                     expand=c(0,0)) +
   theme_classic(base_size = 18)+
   theme(axis.text.y= element_blank())+
   geom_hline(yintercept = 74.5, colour="red")+
