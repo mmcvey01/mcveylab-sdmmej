@@ -5,6 +5,7 @@ library(grid)
 library(gtable)
 library(stringr)
 library(dplyr)
+library(tidyverse)
 
 ## input files
 # a<-read.csv("Iw7Cas9_HiFiBR_reclassified.csv") # VARIABLE
@@ -12,7 +13,7 @@ library(dplyr)
 # in_consistency_log = "Iw7_python_consistency.csv"
 # in_ins_consistency = "Iw7Cas9_HiFiBR_insertion_insertion_consistency2.csv" 
 # in_comp_consistency = "Iw7Cas9_HiFiBR_complex_insertion_consistency2.csv"
-# in_break_curated="Iw7break_curated.csv"
+# out_break_curated="Iw7break_curated.csv"
 # 
 # ## output files
 # out_cc ="Iw7_combined_curated.csv"
@@ -28,21 +29,24 @@ library(dplyr)
 # out_consistency_true_ins="Iw7_SD-MMEJ_consistency_true_ins_del2.csv"
 
 ## input files
-setwd('/Users/rbator01/Box/git/sdmmej/test_data/polyA1Seq/PolyA1Seq_testdata_output/')
-in_template_name="PolyA1Seq_testdata"
+setwd('~/Documents/git/sdmmej/test_data/polyA2Seq/PolyA2Seq_output/')
+in_template_name="PolyA2Seq"
+outfolder="output/"
 
-a<-read.csv(paste0(in_template_name, "_reclassified.csv")) # VARIABLE
-in_consistency_log = paste0(in_template_name, "_deletion_consistency_log.txt")
+in_hifibr_reclassified<-paste0(in_template_name, "_reclassified.csv") # VARIABLE
+in_consistency_log = paste0(in_template_name, "_deletion_consistency_log_subset.csv")
 in_ins_consistency = paste0(in_template_name, "_insertion_insertion_consistency2.csv" )
 in_comp_consistency = paste0(in_template_name, "_complex_insertion_consistency2.csv")
-in_break_curated=paste0(in_template_name, "_break.csv") #"Iw7break_curated.csv" QUESTION IF CURATION IS NECESSARY
+in_consistency_table=paste0(in_template_name, "_deletion_consistency_table.txt") # "Iw7_python_spreadsheet.csv"
 
 ## output files
-outfolder="output/"
+dir.create(outfolder)
 out_cc =paste0(outfolder,in_template_name, "_combined_curated.csv")
 out_dmerge=paste0(outfolder,in_template_name, "_del_merge_table.csv")
 out_all=paste0(outfolder,in_template_name, "_all_SD-MMEJ_consistency.csv")
 out_break=paste0(outfolder,in_template_name, "_break.csv")
+out_break_curated=paste0(outfolder,in_template_name, "_break.csv") #"Iw7break_curated.csv" QUESTION IF CURATION IS NECESSARY
+
 out_ins_consistency=paste0(outfolder,in_template_name, "_insertion_consistent_analysis.csv")
 out_del_for_template_plot=paste0(outfolder,in_template_name, "_del_data_for_template_plot.csv")
 out_del_compressed_temp_plot_mech=paste0(outfolder,in_template_name, "_del_data_for_compressed_temp_plot-mech.csv")
@@ -52,8 +56,13 @@ out_ins_template_plot_data_mechanism=paste0(outfolder,in_template_name, "_ins_te
 out_consistency_true_ins=paste0(outfolder,in_template_name, "_SD-MMEJ_consistency_true_ins_del2.csv")
 
 
+#### read input data
+a=read.csv(in_hifibr_reclassified)
 names(a)[names(a) == "ALIGNED_SEQ"] <- "RECONSTRUCTED_SEQ"
+
+#### filter for more than 9 reads
 a10 <- subset(a, READS>9)
+
 #Determine percent of total and inaccurate reads for each junction
 a10$percent <- a10$READS/sum(a10$READS)*100
 sum(a10$percent)
@@ -68,24 +77,22 @@ a10c<-subset(a10, CLASS_final=="complex")
 a10i<-subset(a10, CLASS_final=="insertion")
 a10e<-subset(a10, CLASS_final=="exact")
 cc<-rbind(a10d,a10c,a10i,a10e)
-
 write.csv(cc, out_cc) # VARIABLE
+#view(cc)
 
+### complex and insertion
 a10ci<-rbind(a10c, a10i)
-del<-read.table(in_consistency_log, sep="",header = T) # File to be generated from the python output _consistency_log file input into excel as a comma/tab/space delimited file
-# ERROR: more columns than column names
 
+#### read consistency log subset table and add sequence information
+del<-read.csv(in_consistency_log, header = T) # File to be generated from the python output _consistency_log file input into excel as a comma/tab/space delimited file
 del$SEQ <- toupper(del$SEQ)
 names(del)[names(del) == "SEQ"] <- "RECONSTRUCTED_SEQ"
 dmerge<- merge(del, a10d,"RECONSTRUCTED_SEQ", all=TRUE)
-library(tidyverse)
-view(del)
 write.csv(dmerge, out_dmerge) # VARIABLE
+#view(dmerge)
 
 ins<-read.csv(in_ins_consistency) 
 comp<-read.csv(in_comp_consistency) # VARIABLE
-
-
 ic<-rbind(ins, comp)
 icmerge<-merge(ic, a10ci, "RECONSTRUCTED_SEQ", all=FALSE)
 
@@ -103,6 +110,7 @@ ins1$CLASS <- "Insertion"
 ins1$left_del <- icmerge$left_del 
 ins1$right_del <- icmerge$right_del
 ins1$CONSISTENCY <- icmerge$consistency
+view(ins1)
 
 del1 <- cbind(dmerge[,10:25])
 del1$INSERTED_SEQ <- NA
@@ -122,14 +130,14 @@ all <- rbind(ins1,del1)
 colnames(all)
 # sum(all$percent_inaccurate)
 write.csv(all,out_all) # VARIABLE
-
+view(all)
 
 # FINAL FIGURES
 # ====================================================== Insertion Primer Plot ====================================================================
 # csv inputs - _combined_curated and _insertion_consistency
 # csv outputs - _break
 
-rm(list=ls())
+#rm(list=ls())
 library(stringr)
 library(Biostrings)
 library(ggplot2)
@@ -137,26 +145,33 @@ library(plyr)
 library(grid)
 #setwd("/Users/awelterofcollidingmaterials/desktop/Nick Woodward - Cas9_Iw7 Control Injections/6 Plots")
 
-m <- out_cc #read.csv(out_cc) # VARIABLE
-a <- in_ins_consistency #read.csv(in_ins_consistency) # VARIABLE
-b <- in_comp_consistency #read.csv(in_comp_consistency) # VARIABLE
+m <- read.csv(out_cc) # VARIABLE
+a <- read.csv(in_ins_consistency) # VARIABLE
+b <- read.csv(in_comp_consistency) # VARIABLE
 
-# colnames(a)
-# colnames(b)
+#colnames(a)
+#colnames(b)
+
 ab <-rbind(a,b)
+#### what is 127 parameter?
 # Input length of the full sequence
+
 ab$RIGHT_DEL <- 127-(nchar(as.character(ab$RECONSTRUCTED_SEQ))-ab$right_del+1)
+#### these are all negative numbers
+unique(ab$RIGHT_DEL)
+
 # 325-(nchar(as.character(ab$RECONSTRUCTED_SEQ)))
 # ab$right_del+1
 
 # Subset insertions based on plasmid and genotype
 ins1 <- subset(m, CLASS_final=="insertion") # MAY WANT TO CHANGE TO CLASS_final
+
 comp<-subset(m, CLASS_final=="complex")
 ins<-rbind(ins1,comp)
 ab.t <- subset(ab, consistency==TRUE)
 colnames(ins)[19] <- "RECONSTRUCTED_SEQ"
 mutIw7a <- merge(ins, ab.t, by="RECONSTRUCTED_SEQ")
-
+view(mutIw7a)
 
 # DIRECT REPEAT - RIGHT SIDE
 mutIw7a.dr <- mutIw7a[!is.na(mutIw7a$DR_START),]
@@ -212,7 +227,7 @@ for (i in 1:nrow(drr)){
     a6 <- rbind(a6,a7)
   }
 }
-
+#### what is parameter 77
 a6$is_trans <- ifelse(drr$DR_START_TRUE<77,
                       ifelse(drr$DR_START_TRUE>77, "trans", "no"), "no") 
 a6$p1_start <- ifelse(a6$is_trans=="trans", # primer1 start need to be true (trans) if we're going to count it
@@ -241,6 +256,8 @@ a6$p2_end <-   ifelse(a6$is_trans=="trans",
 a6$p2_length <- 1+a6$p2_end-a6$p2_start
 colnames(a6)[1] <- "motif_ID"
 drr2 <- merge(drr,a6, by="motif_ID")
+
+
 # see if I can add the p2 that have the same p2 indexes
 drr2$p2_ID <- paste(drr2$p2_start, drr2$p2_end, sep="-")
 drr.u.ag <- aggregate(percent_inaccurate~p2_ID,data=drr2, sum)
@@ -250,16 +267,24 @@ drr.um <- merge(drr.u.agt,drr2, by="p2_ID")
 drr.umu <- drr.um[!duplicated(drr.um$p2_ID),]
 drr.umu$p2_start2 <- drr.umu$p2_start-.5
 drr.umu$p2_end2 <- drr.umu$p2_end+.5
+
+####view(drr.umu)
+
+#### FIRST PLOT
 p <- ggplot(drr.umu, aes(x=p2_ID))
 p + geom_boxplot(aes(ymin = p2_start2, lower = p2_start2, middle = p2_start2, 
                      upper = p2_end2, ymax = p2_end2,
                      colour=percent_inaccurate.x, fill=percent_inaccurate.x), 
-                 stat = "identity") + 
+                 stat = "identity")+ 
   coord_flip()+
   scale_colour_gradientn(colours = c("red","yellow","green","lightblue","darkblue"),
                          values=c(1.0,0.8,0.6,0.4,0.2,0)) +
   scale_fill_gradientn(colours = c("red","yellow","green","lightblue","darkblue"),
-                       values=c(1.0,0.8,0.6,0.4,0.2,0))+
+                       values=c(1.0,0.8,0.6,0.4,0.2,0))
+
+#### until this point is does make a plot, but the below coordinate range seems 
+#### not to agree with the plot data, so the plot becomes blank
++
   scale_y_continuous(limits=c(130,190),
                      breaks=51:125,
                      labels = c("A", "G", "C", "C", "G","A", "A", "T", "T", "C", "G", "G", "T", "A", "C", "A", "T", "T", "A", "C", "C", 
@@ -579,6 +604,8 @@ mutIw7.umu$mh_end2 <- mutIw7.umu$mh_end+.5
 mutIw7.umu$ins_start2 <- mutIw7.umu$ins_start-.5
 mutIw7.umu$ins_end2 <- mutIw7.umu$ins_end+.5
 mutIw7.umu$percent_insertion_jxn <- mutIw7.umu$READS.x/sum(mutIw7.umu$READS.x)*100
+
+## ERROR rectangles used here but not defined 
 f2 <- ggplot()+
   geom_boxplot(data=mutIw7.umu, aes(x=p2_mechID, ymin = p2_start2, lower = p2_start2, middle = p2_start2, 
                                     upper = p2_end2, ymax = p2_end2,
@@ -667,8 +694,8 @@ f2
 
 
 # Create _break.csv
-write.csv (mutIw7break, out_break)
-mutIw7break<-read.csv(in_break_curated)
+write.csv(mutIw7break, out_break)
+mutIw7break<-read.csv(out_break_curated)
 attach(mutIw7break)
 
 #create primer set unique indices to aggregate over
@@ -873,7 +900,7 @@ f2
 # ================================================ Insertion Repeat Motif Plot (Expanded) ==================================================================
 # csv input - _break
 # csv output - _insertion_consistent_analysis
-rm(list=ls())
+#rm(list=ls())
 library(plyr)
 library(grid)
 library(ggplot2)
@@ -883,7 +910,7 @@ library(stringr)
 library(dplyr)
 #setwd("/Users/awelterofcollidingmaterials/desktop/Nick Woodward - Cas9_Iw7 Control Injections/6 Plots")
 
-mutIw7break <- out_break #read.csv(out_break)
+mutIw7break <- read.csv(out_break)
 mutIw7break$MOTIF_START <- ifelse(mutIw7break$DR_START_TRUE=="NA",
                                   mutIw7break$RC_START_TRUE,
                                   mutIw7break$DR_START_TRUE)
@@ -987,7 +1014,7 @@ f2
 # ============================================= Deletion Repeat Motif Plot (Expanded) ======================================================
 # csv input - _combined_curated, _python_spreadsheet (data from top of python output), _sample_ID (ID and RECONSTRUCTED_SEQ of python input), del_data_for_template_plot
 # csv output - del_data_for_template_plot, del_data_for_compressed_temp_plot-mech, del_data_for_compressed_temp_plot, 
-rm(list=ls())
+#rm(list=ls())
 library(plyr)
 library(grid)
 library(ggplot2)
@@ -995,11 +1022,20 @@ library(ggplot2)
 m <- read.csv(out_cc)
 # colnames(m)[18] <- "RECONSTRUCTED_SEQ"
 del <- subset(m, CLASS=="deletion")
-a <- read.csv("Iw7_python_spreadsheet.csv") # This file is from the deletion program's python consistency table. Import into excel from txt and then take the top of it.
-b <- read.csv("Iw7_sample_ID.csv") # this file is created by opening the python output file and copying the sequences and ID into an excel sheet and splitting it into ID and Reconstructued seq --> to get reconstructed seq, remove all "-" in the aligned seqs
 
+a <- read.table(in_consistency_table,sep="\t",header=T) # This file is from the deletion program's python consistency table. Import into excel from txt and then take the top of it.
+b <- read.csv(in_consistency_log) # this file is created by opening the python output file and copying the sequences and ID into an excel sheet and splitting it into ID and Reconstructued seq --> to get reconstructed seq, remove all "-" in the aligned seqs
+view(a)
 ab <- merge(a, b, by.x="Sample.ID", by.y="ID")
-abc <- merge(ab,m, by="RECONSTRUCTED_SEQ", all.x=TRUE)
+## ERROR WHAT ID is this merging and what happens to the NA?
+
+ab$RECONSTRUCTED_SEQ = ab$SEQ
+view(ab)
+
+abc <- merge(ab,m, by=c("RECONSTRUCTED_SEQ"), all.x=TRUE)
+
+## ERROR I THINK THIS MERGE ISN't WORKING - maybe the ab SEQ needs to go to all caps
+view(abc)
 
 abc$start <- ifelse(abc$Break.Side=="left",
                     (78-abc$Motif.to.Break), (78+abc$Motif.to.Break-abc$Motif.Length))
@@ -1007,7 +1043,11 @@ abc$end <- ifelse(abc$Break.Side=="left",
                   (77-abc$Motif.to.Break+abc$Motif.Length), (77+abc$Motif.to.Break))
 abc$motif_mechID <- paste(abc$start, abc$end, abc$Mechanism, sep="-")
 
+view(abc)
+##
 abc.ag <- aggregate(READS~motif_mechID,data=abc,sum)
+## ERROR
+
 abc.t <- as.data.frame(table(abc$motif_mechID))
 abc.agt <- merge(abc.ag,abc.t,by.x="motif_mechID", by.y="Var1")
 abc.um <- merge(abc,abc.agt,by="motif_mechID")

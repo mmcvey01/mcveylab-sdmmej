@@ -4,6 +4,8 @@ from EJR_junction_class import *
 import argparse
 import pandas as pd
 import os
+import csv
+import pandas
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -55,7 +57,7 @@ data_file = data_file.strip()
 df = open(data_file)
 
 base_name = os.path.basename(data_file).strip('.txt')
-
+plasmid = base_name.strip("Seq_deletion")
 
 # make output dir
 if not os.path.exists(dir_path):
@@ -71,7 +73,6 @@ outfile2 = dir_path + "/" + base_name + "_consistency_table.txt"
 outfile2 = open(outfile2, "w")
 
 outfile3 = dir_path + "/" + base_name + "_consistency_log_subset.csv"
-outfile3 = open(outfile3, "w")
 
 junction_list = []
 junction_indices_list = []
@@ -595,6 +596,9 @@ outfile.write("\n")
 # calcs for summary table of SD-MMEJ consistent ABJs (table D1)
 consistent_ABJ_list = []
 consistent_ABJ_data = []
+
+all_data_newformat = []
+
 id_counter = 0
 for ejrj in ejrj_list:
     id_counter += 1
@@ -602,10 +606,14 @@ for ejrj in ejrj_list:
         if len(ejrj.filtered_cr(min_consist_rep_size, search_radius)) != 0:
             consistent_ABJ_list.append(ejrj)
             consistent_ABJ_data.append({"id":id_counter, "type":"ABJ"})
+            dl,dr = ejrj.raw_deln_indices
+            all_data_newformat.append({"PLASMID":plasmid, "ID":id_counter, "REPAIR_TYPE":"ABJ", "SEQ":ejrj.print_jnxn(), "TOTAL_DELETION":ejrj.deln_size, "LEFT_DEL_INDEX":dl, "RIGHT_DEL_INDEX":dr, "CONSISTENCY" : "TRUE"})
+
+
 tablestringsD1 = []
 for ejrj in consistent_ABJ_list:
     tablestring = ejrj.print_jnxn().ljust(len(ori_printseq)) +str(ejrj.deln_size).center(4) + str(ejrj.raw_deln_indices).rjust(12)
-    tablestringsD1.append(tablestring)
+
 headerD1_1 = "-------------- SEQUENCES OF SD-MMEJ CONSISTENT ABJs --------------"
 headerD1_2 = "Apparent point of ligation shown as upper/lowercase transition"
 headerD1_3 = "-"*len(headerD1_1)
@@ -638,11 +646,9 @@ outfile.write(str(headerD1_3))
 outfile.write("\n")
 
 
-outfile3.write("SEQUENCES OF SD-MMEJ CONSISTENT ABJs")
 for line in tablestringsD1:
     print line
     outfile.write(str(line))
-    outfile3.write(str(line))
     outfile.write("\n")
 
 print headerD1_3
@@ -664,6 +670,9 @@ for ejrj in ejrj_list:
     if ejrj.jnxn_type == "ABJ":
         if len(ejrj.filtered_cr(min_consist_rep_size, search_radius)) == 0:
             non_consistent_ABJ_list.append(ejrj)
+            dl,dr = ejrj.raw_deln_indices            
+            all_data_newformat.append({"PLASMID":plasmid,"ID":'NA', "REPAIR_TYPE":"ABJ", "SEQ":ejrj.print_jnxn(), "TOTAL_DELETION":ejrj.deln_size, "LEFT_DEL_INDEX":dl, "RIGHT_DEL_INDEX":dr, "CONSISTENCY" : "FALSE"})
+            
 tablestringsD2 = []
 for ejrj in non_consistent_ABJ_list:
     tablestring = ejrj.print_jnxn().ljust(len(ori_printseq)) +str(ejrj.deln_size).center(4) + str(ejrj.raw_deln_indices).rjust(12)
@@ -694,14 +703,11 @@ print headerD1_3
 outfile.write(str(headerD1_3))
 outfile.write("\n")
 
-outfile3.write("SEQUENCES OF *NON* SD-MMEJ CONSISTENT ABJs")
 
 for line in tablestringsD2:
-    #print line
-    outfile3.write(str(line))
-
     outfile.write(str(line))
     outfile.write("\n")
+
 print headerD1_3
 outfile.write(str(headerD1_3))
 outfile.write("\n")
@@ -1076,6 +1082,9 @@ for ejrj in ejrj_list:
         if len(ejrj.filtered_cr(min_consist_rep_size, search_radius)) != 0:
             consistent_MHJ_list.append(ejrj)
             consistent_MHJ_data.append({"id":id_counter,"type":"MHJ"})
+            dl,dr = ejrj.converted_deln_indices            
+            all_data_newformat.append({"PLASMID":plasmid, "ID":id_counter, "REPAIR_TYPE":"MHJ", "SEQ":ejrj.print_jnxn(), "TOTAL_DELETION":ejrj.deln_size, "LEFT_DEL_INDEX":dl, "RIGHT_DEL_INDEX":dr, "CONSISTENCY":"TRUE"})
+
 tablestringsE1 = []
 for ejrj in consistent_MHJ_list:
     tablestring = ejrj.print_jnxn().ljust(len(ori_printseq)) +str(ejrj.deln_size).center(4) + str(ejrj.converted_deln_indices).rjust(12)
@@ -1106,10 +1115,8 @@ print headerE1_3
 outfile.write(str(headerE1_3))
 outfile.write("\n")
 
-outfile3.write(" SEQUENCES OF SD-MMEJ CONSISTENT MHJs")
 for line in tablestringsE1:
     print line
-    outfile3.write(str(line))
     outfile.write(str(line))
     outfile.write("\n")
 print headerE1_3
@@ -1129,6 +1136,9 @@ for ejrj in ejrj_list:
     if ejrj.jnxn_type == "MHJ":
         if len(ejrj.filtered_cr(min_consist_rep_size, search_radius)) == 0:
             non_consistent_MHJ_list.append(ejrj)
+            dl,dr = ejrj.converted_deln_indices            
+            all_data_newformat.append({"PLASMID":plasmid, "ID":'NA', "REPAIR_TYPE":"MHJ", "SEQ":ejrj.print_jnxn(), "TOTAL_DELETION":ejrj.deln_size, "LEFT_DEL_INDEX":dl, "RIGHT_DEL_INDEX":dr, "CONSISTENCY" : "FALSE"})
+
 tablestringsE2 = []
 for ejrj in non_consistent_MHJ_list:
     tablestring = ejrj.print_jnxn().ljust(len(ori_printseq)) +str(ejrj.deln_size).center(4) + str(ejrj.converted_deln_indices).rjust(12)
@@ -1154,10 +1164,8 @@ print headerE1_3
 outfile.write(str(headerE1_3))
 outfile.write("\n")
 
-outfile3.write("SEQUENCES OF *NON* SD-MMEJ CONSISTENT MHJs")
 for line in tablestringsE2:
     print line
-    outfile3.write(str(line))
     outfile.write(str(line))
     outfile.write("\n")
 
@@ -1553,11 +1561,17 @@ print
 print "exiting SD-MMEJ data analysis program..."
 outfile.close()
 outfile2.close()
-outfile3.close()
 
+# write the list of dictionaries to the outfile3
 
+df = pd.DataFrame(all_data_newformat,columns=["PLASMID","ID","GENOTYPE","REPAIR_TYPE","SEQ","TOTAL_DELETION","LEFT_DEL_INDEX","RIGHT_DEL_INDEX","CONSISTENCY"])
+df.to_csv(outfile3,index=False)
 
-
+#keys = all_data_newformat[0].keys()
+#dict_writer = csv.DictWriter(outfile3, keys)
+#dict_writer.writeheader()
+#dict_writer.writerows(all_data_newformat)
+#outfile3.close()
 
 
 
