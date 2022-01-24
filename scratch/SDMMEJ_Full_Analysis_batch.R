@@ -284,7 +284,7 @@ p + geom_boxplot(aes(ymin = p2_start2, lower = p2_start2, middle = p2_start2,
   scale_colour_gradientn(colours = c("red","yellow","green","lightblue","darkblue"),
                          values=c(1.0,0.8,0.6,0.4,0.2,0)) +
   scale_fill_gradientn(colours = c("red","yellow","green","lightblue","darkblue"),
-                       values=c(1.0,0.8,0.6,0.4,0.2,0))+
+                       values=c(1.0,0.8,0.6,0.4,0.2,0))
 
 ### I'm not sure these value/ labels are right for all sequences
 +
