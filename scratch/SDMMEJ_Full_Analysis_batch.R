@@ -263,9 +263,6 @@ breaks = left_lim:right_lim
 red_line_lim_left=breakpoint_distance_from_left
 red_line_lim_right=breakpoint_distance_from_left
 
-breakpoint_distance_from_left
-substr(exact_sequence$RECONSTRUCTED_SEQ,breakpoint_distance_from_left-1, breakpoint_distance_from_left+1)
-
 #### FIRST PLOT
 p <- ggplot(drr.umu, aes(x=p2_ID))
 p + geom_boxplot(aes(ymin = p2_start2, lower = p2_start2, middle = p2_start2, 
