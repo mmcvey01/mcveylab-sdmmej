@@ -8,29 +8,8 @@ library(dplyr)
 library(tidyverse)
 
 ## input files
-# a<-read.csv("Iw7Cas9_HiFiBR_reclassified.csv") # VARIABLE
-# in_template_name="Iw7"
-# in_consistency_log = "Iw7_python_consistency.csv"
-# in_ins_consistency = "Iw7Cas9_HiFiBR_insertion_insertion_consistency2.csv" 
-# in_comp_consistency = "Iw7Cas9_HiFiBR_complex_insertion_consistency2.csv"
-# out_break_curated="Iw7break_curated.csv"
-# 
-# ## output files
-# out_cc ="Iw7_combined_curated.csv"
-# out_dmerge="Iw7_del_merge_table.csv"
-# out_all="IW7_all_SD-MMEJ_consistency.csv"
-# out_break="Iw7break.csv"
-# out_ins_consistency="Iw7_insertion_consistent_analysis.csv"
-# out_del_for_template_plot="Iw7_del_data_for_template_plot.csv"
-# out_del_compressed_temp_plot_mech="Iw7_del_data_for_compressed_temp_plot-mech.csv"
-# out_del_compressed_temp_plot="Iw7_del_data_for_compressed_temp_plot.csv"
-# out_ins_template_plot_data="Iw7_ins_template_plot_data.csv"
-# out_ins_template_plot_data_mechanism="Iw7_ins_template_plot_data_mechanism.csv"
-# out_consistency_true_ins="Iw7_SD-MMEJ_consistency_true_ins_del2.csv"
-
-## input files
-setwd('~/Documents/git/sdmmej/test_data/polyA2Seq/PolyA2Seq_output/')
-in_template_name="PolyA2Seq"
+setwd('~/Box/consultations/mcvey_lab_rt_bioinformatics/terrence_dna_repair/TestData/PolyGSeq_output/')
+in_template_name="PolyGSeq"
 outfolder="output/"
 
 in_hifibr_reclassified<-paste0(in_template_name, "_reclassified.csv") # VARIABLE
@@ -284,6 +263,9 @@ breaks = left_lim:right_lim
 red_line_lim_left=breakpoint_distance_from_left
 red_line_lim_right=breakpoint_distance_from_left
 
+breakpoint_distance_from_left
+substr(exact_sequence$RECONSTRUCTED_SEQ,breakpoint_distance_from_left-1, breakpoint_distance_from_left+1)
+
 #### FIRST PLOT
 p <- ggplot(drr.umu, aes(x=p2_ID))
 p + geom_boxplot(aes(ymin = p2_start2, lower = p2_start2, middle = p2_start2, 
@@ -341,11 +323,17 @@ for (i in 1:nrow(drl)){
     a6 <- rbind(a6,a7)
   }
 }
+
+##view(a6)
+##view(drl)
+
 a6$is_trans <- ifelse(drl$DR_END_TRUE<161,
                       ifelse(drl$DR_END_TRUE>161, "trans", "no"), "no")
+
 a6$p1_start <- ifelse(a6$is_trans=="trans",
                       (drl$DR_END_TRUE+1)-(nchar(as.character(drl$RM))-a6[,3]),
                       drl$DR_START_TRUE)
+
 a6$p1_end <- ifelse(a6$is_trans=="trans",
                     drl$DR_END_TRUE,
                     drl$DR_START_TRUE+(a6[,2]-2))
@@ -377,6 +365,7 @@ drl2.um <- merge( drl2.u.agt,drl2, by="p2_ID")
 drl2.umu <- drl2.um[!duplicated(drl2.um$p2_ID),]
 drl2.umu$p2_start2 <- drl2.umu$p2_start-.5
 drl2.umu$p2_end2 <- drl2.umu$p2_end+.5
+
 p <- ggplot(drl2.umu, aes(x=p2_ID))
 p + geom_boxplot(aes(ymin = p2_start2, lower = p2_start2, middle = p2_start2, 
                      upper = p2_end2, ymax = p2_end2,
@@ -386,20 +375,16 @@ p + geom_boxplot(aes(ymin = p2_start2, lower = p2_start2, middle = p2_start2,
   scale_colour_gradientn(colours = c("red","yellow","green","lightblue","darkblue"),
                          values=c(1.0,0.8,0.6,0.4,0.2,0)) +
   scale_fill_gradientn(colours = c("red","yellow","green","lightblue","darkblue"),
-                       values=c(1.0,0.8,0.6,0.4,0.2,0))+
-  scale_y_continuous(limits=c(130,190),
-                     breaks=51:125,
-                     labels = c("A", "G", "C", "C", "G","A", "A", "T", "T", "C", "G", "G", "T", "A", "C", "A", "T", "T", "A", "C", "C", 
-                                "C", "T", "G", "t", "t", "a", "t", "C", "C", "C", "T", "A", "G", "C", 
-                                "G", "G", "C", "C", "G", "C", "A","T", "A","G", "G", "C", "C", 
-                                "A", "C", "T","A", "G", "T", "G", "G", "A", "T","C", "T", "G", "G", "A", 
-                                "T", "C", "C","T","C","T","A","G","A","G","T","C"), #CCCTAGC  TATGGTC   TGCGCTACT   AGTGGATCTGGGGCC   GCATAGGCC
+                       values=c(1.0,0.8,0.6,0.4,0.2,0)) + 
+  scale_y_continuous(limits=c(left_lim,right_lim),
+                     breaks=left_lim:right_lim,
+                     labels = axis_label,
                      name = "Nucleotide",
-                     expand=c(0,0))+
+                     expand=c(0,0)) +
   theme_classic(base_size = 18)+
   theme(axis.text.y= element_blank())+
-  geom_hline(yintercept = 75, colour="red")+
-  geom_hline(yintercept = 78,colour="red")
+  geom_hline(yintercept = red_line_lim_left, colour="red")+
+  geom_hline(yintercept = red_line_lim_right,colour="red")
 
 
 # REVERSE COMPLEMENT - LEFT SIDE
@@ -412,10 +397,10 @@ mutIw7a.rc <- cbind(as.data.frame(mutIw7a.rc),test2)
 colnames(mutIw7a.rc)[46] <- "RM"
 mutIw7a.rc$insertion_length <- nchar(as.character(mutIw7a.rc$insertion))
 mutIw7a.rc$RC_START_TRUE <- ifelse(mutIw7a.rc$side=="RIGHT", 
-                                   (127-(nchar(as.character(mutIw7a.rc$RECONSTRUCTED_SEQ))- mutIw7a.rc$RC_START-mutIw7a.rc$insertion_length)),
+                                   (exact_sequence_length-(nchar(as.character(mutIw7a.rc$RECONSTRUCTED_SEQ))- mutIw7a.rc$RC_START-mutIw7a.rc$insertion_length)),
                                    mutIw7a.rc$RC_START)
 mutIw7a.rc$RC_END_TRUE <- ifelse(mutIw7a.rc$side=="RIGHT", 
-                                 (127-(nchar(as.character(mutIw7a.rc$RECONSTRUCTED_SEQ))- mutIw7a.rc$RC_END-mutIw7a.rc$insertion_length)),
+                                 (exact_sequence_length-(nchar(as.character(mutIw7a.rc$RECONSTRUCTED_SEQ))- mutIw7a.rc$RC_END-mutIw7a.rc$insertion_length)),
                                  mutIw7a.rc$RC_END)
 mutIw7a.rc$motif_ID <- paste(mutIw7a.rc$ID.y,mutIw7a.rc$RC_START_TRUE,mutIw7a.rc$RC_END_TRUE,sep="-")
 mutIw7a.rc <- mutIw7a.rc[!duplicated(mutIw7a.rc$motif_ID),]
@@ -560,19 +545,15 @@ p + geom_boxplot(aes(ymin = p2_start2, lower = p2_start2, middle = p2_start2,
                          values=c(1.0,0.8,0.6,0.4,0.2,0)) +
   scale_fill_gradientn(colours = c("red","yellow","green","lightblue","darkblue"),
                        values=c(1.0,0.8,0.6,0.4,0.2,0))+
-  scale_y_continuous(limits=c(130,190),
-                     breaks=51:125,
-                     labels = c("A", "G", "C", "C", "G","A", "A", "T", "T", "C", "G", "G", "T", "A", "C", "A", "T", "T", "A", "C", "C", 
-                                "C", "T", "G", "t", "t", "a", "t", "C", "C", "C", "T", "A", "G", "C", 
-                                "G", "G", "C", "C", "G", "C", "A","T", "A","G", "G", "C", "C", 
-                                "A", "C", "T","A", "G", "T", "G", "G", "A", "T","C", "T", "G", "G", "A", 
-                                "T", "C", "C","T","C","T","A","G","A","G","T","C"), #CCCTAGC  TATGGTC   TGCGCTACT   AGTGGATCTGGGGCC   GCATAGGCC
+  scale_y_continuous(limits=c(left_lim,right_lim),
+                     breaks=left_lim:right_lim,
+                     labels = axis_label,
                      name = "Nucleotide",
-                     expand=c(0,0))+
+                     expand=c(0,0)) +
   theme_classic(base_size = 18)+
   theme(axis.text.y= element_blank())+
-  geom_hline(yintercept = 75, colour="red")+
-  geom_hline(yintercept = 78,colour="red")
+  geom_hline(yintercept = red_line_lim_left, colour="red")+
+  geom_hline(yintercept = red_line_lim_right,colour="red")
 
 mutIw7dr <- rbind(drr2,drl2)
 mutIw7dr1 <- mutIw7dr[,c(1:2,5:50)]
@@ -649,6 +630,9 @@ f2 <- ggplot()+
                stat = "identity",
                width=.8)+  
   geom_hline(yintercept = c(74.5,78.5), colour="red", size=0.75)
+
+
+
 f2
 
 f2 <- ggplot()+
