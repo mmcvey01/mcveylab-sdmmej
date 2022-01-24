@@ -114,7 +114,7 @@ ins1$CLASS <- "Insertion"
 ins1$left_del <- icmerge$left_del 
 ins1$right_del <- icmerge$right_del
 ins1$CONSISTENCY <- icmerge$consistency
-view(ins1)
+##view(ins1)
 
 del1 <- cbind(dmerge[,10:25])
 del1$INSERTED_SEQ <- NA
@@ -134,7 +134,7 @@ all <- rbind(ins1,del1)
 colnames(all)
 # sum(all$percent_inaccurate)
 write.csv(all,out_all) # VARIABLE
-view(all)
+##view(all)
 
 # FINAL FIGURES
 # ====================================================== Insertion Primer Plot ====================================================================
@@ -162,8 +162,6 @@ ab <-rbind(a,b)
 ####ab$RIGHT_DEL <- 127-(nchar(as.character(ab$RECONSTRUCTED_SEQ))-ab$right_del+1)
 ab$RIGHT_DEL <- exact_sequence_length -(nchar(as.character(ab$RECONSTRUCTED_SEQ))-ab$right_del+1)
 
-#### these are all negative numbers
-unique(ab$RIGHT_DEL)
 
 # 325-(nchar(as.character(ab$RECONSTRUCTED_SEQ)))
 # ab$right_del+1
@@ -231,9 +229,10 @@ for (i in 1:nrow(drr)){
     a6 <- rbind(a6,a7)
   }
 }
-#### what is parameter 77
-a6$is_trans <- ifelse(drr$DR_START_TRUE<77,
-                      ifelse(drr$DR_START_TRUE>77, "trans", "no"), "no") 
+
+
+a6$is_trans <- ifelse(drr$DR_START_TRUE<breakpoint_distance_from_left,
+                      ifelse(drr$DR_START_TRUE>breakpoint_distance_from_left, "trans", "no"), "no") 
 a6$p1_start <- ifelse(a6$is_trans=="trans", # primer1 start need to be true (trans) if we're going to count it
                       drr$DR_START_TRUE, 
                       (drr$DR_END_TRUE+1)-(nchar(as.character(drr$RM))-a6[,3]))
@@ -274,6 +273,17 @@ drr.umu$p2_end2 <- drr.umu$p2_end+.5
 
 ####view(drr.umu)
 
+## Working here to try and relabel the plot for each sequence
+## These are defined for the first draft plot
+breakpoint_distance_from_left = exact_sequence$DISTANCE_FROM_BREAK_LEFT
+left_lim = breakpoint_distance_from_left - 30
+right_lim = breakpoint_distance_from_left + 30
+sequence_segment_for_label = substr(exact_sequence$RECONSTRUCTED_SEQ,left_lim, right_lim)
+axis_label = as.list(strsplit(sequence_segment_for_label, "")[[1]])
+breaks = left_lim:right_lim
+red_line_lim_left=breakpoint_distance_from_left
+red_line_lim_right=breakpoint_distance_from_left
+
 #### FIRST PLOT
 p <- ggplot(drr.umu, aes(x=p2_ID))
 p + geom_boxplot(aes(ymin = p2_start2, lower = p2_start2, middle = p2_start2, 
@@ -284,23 +294,18 @@ p + geom_boxplot(aes(ymin = p2_start2, lower = p2_start2, middle = p2_start2,
   scale_colour_gradientn(colours = c("red","yellow","green","lightblue","darkblue"),
                          values=c(1.0,0.8,0.6,0.4,0.2,0)) +
   scale_fill_gradientn(colours = c("red","yellow","green","lightblue","darkblue"),
-                       values=c(1.0,0.8,0.6,0.4,0.2,0))
-
-### I'm not sure these value/ labels are right for all sequences
-+
-  scale_y_continuous(limits=c(130,190),
-                     breaks=51:125,
-                     labels = c("A", "G", "C", "C", "G","A", "A", "T", "T", "C", "G", "G", "T", "A", "C", "A", "T", "T", "A", "C", "C", 
-                                "C", "T", "G", "t", "t", "a", "t", "C", "C", "C", "T", "A", "G", "C", 
-                                "G", "G", "C", "C", "G", "C", "A","T", "A","G", "G", "C", "C", 
-                                "A", "C", "T","A", "G", "T", "G", "G", "A", "T","C", "T", "G", "G", "A", 
-                                "T", "C", "C","T","C","T","A","G","A","G","T","C"), #CCCTAGC  TATGGTC   TGCGCTACT   AGTGGATCTGGGGCC   GCATAGGCC
+                       values=c(1.0,0.8,0.6,0.4,0.2,0))+
+  scale_y_continuous(limits=c(left_lim,right_lim),
+                     breaks=left_lim:right_lim,
+                     labels = axis_label,
                      name = "Nucleotide",
                      expand=c(0,0)) +
   theme_classic(base_size = 18)+
   theme(axis.text.y= element_blank())+
-  geom_hline(yintercept = 74.5, colour="red")+
-  geom_hline(yintercept = 78.5,colour="red")
+  geom_hline(yintercept = red_line_lim_left, colour="red")+
+  geom_hline(yintercept = red_line_lim_right,colour="red")
+
+
 
 # DIRECT REPEAT - LEFT SIDE
 drl <- subset(mutIw7a.dr, mutIw7a.dr$side=="LEFT")
