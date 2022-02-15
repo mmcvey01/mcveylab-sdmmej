@@ -53,6 +53,7 @@ This generates output files in a directory `PolyA1Seq_testdata_output` with the 
 - Outputs from Deletion script  
 `PolyA1Seq_testdata_deletion_consistency_log.txt`  
 `PolyA1Seq_testdata_deletion_consistency_table.txt`  
+`PolyA1Seq_testdata_deletion_consistency_log_subset.csv`
 
 - Outputs from Insertionn script, which is run on both insertions and complex separately
 `PolyA1Seq_testdata_insertion_insertion_consistency2.csv`  

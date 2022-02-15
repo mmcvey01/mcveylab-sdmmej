@@ -8,7 +8,7 @@ library(dplyr)
 library(tidyverse)
 
 ## input files
-setwd('~/Box/consultations/mcvey_lab_rt_bioinformatics/terrence_dna_repair/TestData/PolyGSeq_output/')
+setwd('~/Box/bioinformatics_research_technology/rt_bioinformatics_consultations/mcvey_lab_rt_bioinformatics/terrence_dna_repair/TestData/PolyGSeq_output/')
 in_template_name="PolyGSeq"
 outfolder="output/"
 
@@ -43,17 +43,32 @@ names(a)[names(a) == "ALIGNED_SEQ"] <- "RECONSTRUCTED_SEQ"
 exact_sequence = subset(a, CLASS=="exact")
 exact_sequence_length = nchar(as.character(exact_sequence$RECONSTRUCTED_SEQ))
 
+# ## Working here to try and relabel the plot for each sequence
+# ## These are defined for the first draft plot
+breakpoint_distance_from_left = exact_sequence$DISTANCE_FROM_BREAK_LEFT
+#breakpoint_distance_from_left = 164 for PolyG
+left_lim = breakpoint_distance_from_left - 30
+right_lim = breakpoint_distance_from_left + 30
+sequence_segment_for_label = substr(exact_sequence$RECONSTRUCTED_SEQ,left_lim, right_lim)
+axis_label = as.list(strsplit(sequence_segment_for_label, "")[[1]])
+breaks = left_lim:right_lim
+red_line_lim_left=breakpoint_distance_from_left
+red_line_lim_right=breakpoint_distance_from_left
+
+
+
 #### filter for more than 9 reads
 a10 <- subset(a, READS>9)
 
-#Determine percent of total and inaccurate reads for each junction
+#Determine percent of total reads (including exact) and inaccurate reads (excluding exact) for each junction
 a10$percent <- a10$READS/sum(a10$READS)*100
 sum(a10$percent)
 a10.nexact <- subset(a10, CLASS!="exact")
-sum(a10.nexact$percent_inaccurate)
 a10.exact <- subset(a10,CLASS=="exact")
 a10.exact$percent_inaccurate <- "NA"
 a10.nexact$percent_inaccurate <- a10.nexact$READS/sum(a10.nexact$READS)*100
+sum(a10.nexact$percent_inaccurate)
+
 a10 <- rbind(a10.exact,a10.nexact)
 a10d<-subset(a10, CLASS_final=="deletion")
 a10c<-subset(a10, CLASS_final=="complex")
@@ -176,6 +191,7 @@ mutIw7a.dr$motif_ID <- paste(mutIw7a.dr$ID.y,mutIw7a.dr$DR_START_TRUE,mutIw7a.dr
 mutIw7a.dr <- mutIw7a.dr[!duplicated(mutIw7a.dr$motif_ID),] # Removes all duplicate repeat motif IDs
 
 drr <- subset(mutIw7a.dr, side=="RIGHT") # Subsetting the direct repeats from only the right side
+
 a6 <- data.frame(ID=numeric() ,x=numeric() , y=numeric() , stringsAsFactors = FALSE) # Creates new data frame "a6"
 for (i in 1:nrow(drr)){ 
   ins <- as.character(drr[i,38])    # creates insertion sequence region to search using "insertion" column
@@ -251,17 +267,17 @@ drr.umu$p2_start2 <- drr.umu$p2_start-.5
 drr.umu$p2_end2 <- drr.umu$p2_end+.5
 
 ####view(drr.umu)
-
-## Working here to try and relabel the plot for each sequence
-## These are defined for the first draft plot
-breakpoint_distance_from_left = exact_sequence$DISTANCE_FROM_BREAK_LEFT
-left_lim = breakpoint_distance_from_left - 30
-right_lim = breakpoint_distance_from_left + 30
-sequence_segment_for_label = substr(exact_sequence$RECONSTRUCTED_SEQ,left_lim, right_lim)
-axis_label = as.list(strsplit(sequence_segment_for_label, "")[[1]])
-breaks = left_lim:right_lim
-red_line_lim_left=breakpoint_distance_from_left
-red_line_lim_right=breakpoint_distance_from_left
+# 
+# ## Working here to try and relabel the plot for each sequence
+# ## These are defined for the first draft plot
+# breakpoint_distance_from_left = exact_sequence$DISTANCE_FROM_BREAK_LEFT
+# left_lim = breakpoint_distance_from_left - 30
+# right_lim = breakpoint_distance_from_left + 30
+# sequence_segment_for_label = substr(exact_sequence$RECONSTRUCTED_SEQ,left_lim, right_lim)
+# axis_label = as.list(strsplit(sequence_segment_for_label, "")[[1]])
+# breaks = left_lim:right_lim
+# red_line_lim_left=breakpoint_distance_from_left
+# red_line_lim_right=breakpoint_distance_from_left
 
 #### FIRST PLOT
 p <- ggplot(drr.umu, aes(x=p2_ID))
