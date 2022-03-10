@@ -8,8 +8,13 @@ library(dplyr)
 library(tidyverse)
 
 ## input files
-setwd('~/Box/bioinformatics_research_technology/rt_bioinformatics_consultations/mcvey_lab_rt_bioinformatics/terrence_dna_repair/TestData/PolyGSeq_output/')
-in_template_name="PolyGSeq"
+#setwd('~/Box/bioinformatics_research_technology/rt_bioinformatics_consultations/mcvey_lab_rt_bioinformatics/terrence_dna_repair/TestData/PolyGSeq_output/')
+#in_template_name="PolyGSeq"
+
+setwd('~/Box/bioinformatics_research_technology/rt_bioinformatics_consultations/mcvey_lab_rt_bioinformatics/terrence_dna_repair/TestData/PolyA1Seq_output/')
+in_template_name="PolyA1Seq"
+
+
 outfolder="output/"
 
 in_hifibr_reclassified<-paste0(in_template_name, "_reclassified.csv") # VARIABLE
@@ -49,6 +54,18 @@ breakpoint_distance_from_left = exact_sequence$DISTANCE_FROM_BREAK_LEFT
 #breakpoint_distance_from_left = 164 for PolyG
 left_lim = breakpoint_distance_from_left - 30
 right_lim = breakpoint_distance_from_left + 30
+
+## test if the break is in the right place
+breakpoint_distance_from_left = exact_sequence$DISTANCE_FROM_BREAK_RIGHT
+exact_sequence$DISTANCE_FROM_BREAK_RIGHT
+test_left = breakpoint_distance_from_left - 3
+test_right = breakpoint_distance_from_left + 3
+
+test_label = substr(exact_sequence$RECONSTRUCTED_SEQ,test_left, test_right)
+test_label
+
+
+
 sequence_segment_for_label = substr(exact_sequence$RECONSTRUCTED_SEQ,left_lim, right_lim)
 axis_label = as.list(strsplit(sequence_segment_for_label, "")[[1]])
 breaks = left_lim:right_lim
@@ -94,7 +111,9 @@ comp<-read.csv(in_comp_consistency) # VARIABLE
 ic<-rbind(ins, comp)
 icmerge<-merge(ic, a10ci, "RECONSTRUCTED_SEQ", all=FALSE)
 
-# Combine deletion and insertion consistency tables to create single table that has all of the consistency information on it with accurate deletion boundaries.
+# Combine deletion and insertion consistency tables to create single table 
+# that has all of the consistency information on it with accurate deletion boundaries.
+
 ins1 <- icmerge[,19:34]
 ins1$RECONSTRUCTED_SEQ <- icmerge$RECONSTRUCTED_SEQ
 ins1$READS <- icmerge$READS
@@ -126,7 +145,7 @@ colnames(ins1)
 names(del1) <- names(ins1)
 all <- rbind(ins1,del1)
 colnames(all)
-# sum(all$percent_inaccurate)
+#sum(all$percent_inaccurate)
 write.csv(all,out_all) # VARIABLE
 ##view(all)
 
