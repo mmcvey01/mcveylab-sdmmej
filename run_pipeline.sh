@@ -6,7 +6,6 @@ if [ "$#" -ne 1 ]; then
     echo "Error: please supply the path to the HiFibr input file as a command line argument"
 fi
 
-
 input=$1
 
 ## These parameters are the defaults, can be changed in this script if needed
@@ -32,39 +31,39 @@ echo "------"
 echo "Starting to process HiFibr output file"
 echo "------"
 
-# Rscript process_hifibr.R $input $results_dir $search_radius $breakpoint $debug
-# 
-# echo "------"
-# echo "Done Hifiber processing"
-# echo "------"
-# echo "Starting deletion consistency script, see log ${bn}_deletion.log"
-# 
-# python deletion/SDMMEJDeletionProgram_cli.py -hi ${hifi_reclass} -del ${deletion_out} -n $breakpoint -out $results_dir > ${results_dir}/${bn}_deletion.log
-# 
-# echo "------"
-# echo "Done deletion script"
-# echo "------"
-# echo "------"
-# echo "Starting insertion consistency script on insertions"
-# echo "------"
-# 
-# Rscript insertion/INSERTION_PROGRAM.R ${hifi_reclass} ${insertion_out} $results_dir $breakpoint $search_radius
-# 
-# echo "------"
-# echo "Done insertion script on insertions"
-# echo "------"
-# 
-# echo "------"
-# echo "Starting insertion consistency script on complex"
-# echo "------"
-# 
-# Rscript insertion/INSERTION_PROGRAM.R ${hifi_reclass} ${complex_out} $results_dir $breakpoint $search_radius
-# 
-# echo "------"
-# echo "Done insertion script on complex"
-# echo "------"
-# 
-# ## Run plotting script
+Rscript process_hifibr.R $input $results_dir $search_radius $breakpoint $debug
+
+echo "------"
+echo "Done Hifiber processing"
+echo "------"
+echo "Starting deletion consistency script, see log ${bn}_deletion.log"
+
+python deletion/SDMMEJDeletionProgram_cli.py -hi ${hifi_reclass} -del ${deletion_out} -n $breakpoint -out $results_dir > ${results_dir}/${bn}_deletion.log
+
+echo "------"
+echo "Done deletion script"
+echo "------"
+echo "------"
+echo "Starting insertion consistency script on insertions"
+echo "------"
+
+Rscript insertion/INSERTION_PROGRAM.R ${hifi_reclass} ${insertion_out} $results_dir $breakpoint $search_radius
+
+echo "------"
+echo "Done insertion script on insertions"
+echo "------"
+
+echo "------"
+echo "Starting insertion consistency script on complex"
+echo "------"
+
+Rscript insertion/INSERTION_PROGRAM.R ${hifi_reclass} ${complex_out} $results_dir $breakpoint $search_radius
+
+echo "------"
+echo "Done insertion script on complex"
+echo "------"
+
+## Run plotting script
 
 Rscript SDMMEJ_Plots.R $results_dir $bn
 
