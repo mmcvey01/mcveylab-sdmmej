@@ -11,8 +11,8 @@ library(tidyverse)
 #setwd('~/Box/bioinformatics_research_technology/rt_bioinformatics_consultations/mcvey_lab_rt_bioinformatics/terrence_dna_repair/TestData/PolyGSeq_output/')
 #in_template_name="PolyGSeq"
 
-setwd('~/Box/bioinformatics_research_technology/rt_bioinformatics_consultations/mcvey_lab_rt_bioinformatics/terrence_dna_repair/TestData/PolyA1Seq_output/')
-in_template_name="PolyA1Seq"
+#setwd('~/Box/bioinformatics_research_technology/rt_bioinformatics_consultations/mcvey_lab_rt_bioinformatics/terrence_dna_repair/TestData/PolyA1Seq_output/')
+#in_template_name="PolyA1Seq"
 
 
 outfolder="output/"

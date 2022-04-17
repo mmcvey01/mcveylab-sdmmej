@@ -1,53 +1,72 @@
-dir.create("Table_Outputs")
-dir.create("Plots")
+#!/usr/bin/env Rscript
+args = commandArgs(trailingOnly=TRUE)
 
-library(seqinr)
-library(ggplot2)
-library(grid)
-library(gtable)
-library(stringr)
-library(dplyr)
-library(Biostrings)
-library(tidyverse)
-library(reshape)
-library(plyr)
+suppressPackageStartupMessages({
+  library(seqinr)
+  library(ggplot2)
+  library(grid)
+  library(gtable)
+  library(stringr)
+  library(dplyr)
+  library(Biostrings)
+  library(tidyverse)
+  library(reshape)
+  library(plyr)
+})
 
-# test if there is at least 5 argument: if not, return an error
-if (length(args)<5) {
-  stop("Usage: Rscript process_hifibr.R input_file.csv outdir search_radius debug", call.=FALSE)
-} else if (length(args)==5) {
-  input_file = args[1]
-  out_dir = args[2]
-  search_radius=as.integer(args[3])
-  break_location=as.integer(args[4])
-  debug=as.integer(args[5])
+#In order to debug, uncomment this and comment the command line information
+#outdir, "/"="~/Box/bioinformatics_research_technology/rt_bioinformatics_consultations/mcvey_lab_rt_bioinformatics/terrence_dna_repair/TestData/PolyGSeq_output/"
+#plasmid="PolyGSeq"
+
+##test if there is at least 2 argument: if not, return an error
+if (length(args)<2) {
+  stop("Usage: Rscript SDMMEJ_Plots.R outdir plasmid", call.=FALSE)
+} else if (length(args)== 2) {
+  outdir=args[1]
+  plasmid=args[2]
 }
-
-
-#----------------------Basic Information Input-----------------------------------
-BreakPointFromLeft = 161 #Input Break Point From Left used in Hi-FiBR
-BreakPointFromRight = 164 #Input Break Point From Right used in Hi-FiBR
-Plasmid = "Iw7"
-#import reference .fasta file
-          #if you get error: "incomplete final line found on...", open .fasta file in text editor, 
-          #put cursor at last point in file and hit enter, then save, that should fix it
-referenceSeq = read.fasta(paste(Plasmid,".fa", sep=""), as.string = TRUE, seqonly = TRUE)
-lengthRef = getLength(referenceSeq)
-referencetxt = read.table(paste(Plasmid,".txt", sep=""))
-referenceSplit = unlist(strsplit(as.character(referencetxt), split=""))
-
 
 #-----------------------Read In Data Frames--------------------------------------
 # Read in "_insertion_insertion_consistency2.csv" file from SDMMEJ pipeline
-insertionsConsistent = read.csv(paste(Plasmid,"_output/", Plasmid,"_insertion_insertion_consistency2.csv", sep=""),row.names=1)
 
-complexConsistent = read.csv(paste(Plasmid,"_output/", Plasmid, "_complex_insertion_consistency2.csv", sep=""), row.names = 1)
+inHifibrReclassified<-read.csv(paste0(outdir, "/", plasmid, "_reclassified.csv"))
+view(inHifibrReclassified)
+insertionsConsistent = read.csv(paste0(outdir, "/", plasmid,"_insertion_insertion_consistency2.csv"),row.names=1)
 
-reclassData = read.csv(paste(Plasmid,"_output/", Plasmid, "_reclassified.csv", sep=""), row.names = 1)
+complexConsistent = read.csv(paste0(outdir, "/", plasmid, "_complex_insertion_consistency2.csv"), row.names = 1)
 
-del = read.csv(paste(Plasmid,"_output/", Plasmid, "_deletion_consistency_log_subset.csv", sep=""))
+reclassData = read.csv(paste0(outdir, "/", plasmid, "_reclassified.csv"), row.names = 1)
 
-DeletionData = read.csv(paste(Plasmid,"_output/", Plasmid, "_deletion_consistency_table.txt", sep=""), sep="\t", header=T)
+del = read.csv(paste0(outdir, "/", plasmid, "_deletion_consistency_log_subset.csv"))
+
+DeletionData = read.csv(paste0(outdir, "/", plasmid, "_deletion_consistency_table.txt"), sep="\t", header=T)
+
+#----------------------Basic Information Input-----------------------------------
+
+names(inHifibrReclassified)[names(inHifibrReclassified) == "ALIGNED_SEQ"] <- "RECONSTRUCTED_SEQ"
+
+#### get the length of the final sequence
+referenceSeq = subset(inHifibrReclassified, CLASS=="exact")
+referencetxt = referenceSeq$RECONSTRUCTED_SEQ
+referenceSplit = unlist(strsplit(as.character(referencetxt), split=""))
+lengthRef = nchar(as.character(referencetxt))
+
+# sequence_segment_for_label = substr(exact_sequence$RECONSTRUCTED_SEQ,left_lim, right_lim)
+# axis_label = as.list(strsplit(sequence_segment_for_label, "")[[1]])
+#breakpoint_distance_from_left = exact_sequence$DISTANCE_FROM_BREAK_RIGHT
+
+BreakPointFromLeft =  referenceSeq$DISTANCE_FROM_BREAK_RIGHT #Input Break Point From Left used in Hi-FiBR
+BreakPointFromRight =  referenceSeq$DISTANCE_FROM_BREAK_LEFT #Input Break Point From Right used in Hi-FiBR
+
+#import reference .fasta file
+          #if you get error: "incomplete final line found on...", open .fasta file in text editor, 
+          #put cursor at last point in file and hit enter, then save, that should fix it
+#referenceSeq = read.fasta(paste(plasmid,".fa", sep=""), as.string = TRUE, seqonly = TRUE)
+#lengthRef = getLength(referenceSeq)
+#referencetxt = read.table(paste(plasmid,".txt", sep=""))
+#referenceSplit = unlist(strsplit(as.character(referencetxt), split=""))
+
+
 
 #-----------------------------Data Manipulation for further SD-MMEJ Analysis-------------------------------------------
 names(reclassData)[names(reclassData) == "ALIGNED_SEQ"] <- "RECONSTRUCTED_SEQ" #renames "ALIGNED_SEQ" column for future 
@@ -66,18 +85,17 @@ insertions = subset(CombinedCurated, CLASS_final=="insertion")
 exact = subset(CombinedCurated, CLASS_final=="exact")
 CombinedCurated=rbind(deletions, complex, insertions, exact)
 
-write.csv(CombinedCurated, paste("Table_Outputs/",Plasmid,"_combined_curated.csv", sep=""))
+write.csv(CombinedCurated, paste0(outdir, "/", "table_outputs/",plasmid,"_combined_curated.csv"))
 
 complexInsertion=rbind(complex, insertions)
 
 InsComConsistent = rbind(insertionsConsistent, complexConsistent)
 InsComConsistent$RIGHT_DEL <- lengthRef -(nchar(as.character(InsComConsistent$RECONSTRUCTED_SEQ))-InsComConsistent$right_del+1) 
 InsComMerge = merge(InsComConsistent, complexInsertion, "RECONSTRUCTED_SEQ", all=FALSE)
-
 del$SEQ = toupper(del$SEQ)
 names(del)[names(del)=="SEQ"] = "RECONSTRUCTED_SEQ"
 deletionsMerged = merge(del, deletions, "RECONSTRUCTED_SEQ", all=FALSE )
-write.csv(deletionsMerged, paste("Table_Outputs/",Plasmid,"_deletions_table.csv", sep=""))
+write.csv(deletionsMerged, paste(outdir, "/", "table_outputs/",plasmid,"_deletions_table.csv", sep=""))
 
 InsertsComplex = InsComMerge[,18:32]
 InsertsComplex$RECONSTRUCTED_SEQ = InsComMerge$RECONSTRUCTED_SEQ
@@ -107,9 +125,9 @@ del1$CLASS = deletionsMerged$CLASS_final
 deletions <- cbind(del1, deletionsMerged[,7:9])
 names(deletions) <- names(InsertsComplex)
 all <- rbind(InsertsComplex,deletions)
-all$PLASMID = Plasmid
+all$plasmid = plasmid
 
-write.csv(all,paste("Table_Outputs/",Plasmid,"_all_SD-MMEJ_consistency.csv", sep=""))
+write.csv(all,paste(outdir, "/", "table_outputs/",plasmid,"_all_SD-MMEJ_consistency.csv", sep=""))
 
 #Calculating efficiency of inaccurate repair events returned
 ExactReads = exact$READS
@@ -117,16 +135,16 @@ InaccurateReads = sum(all$READS)
 AllReads = sum(ExactReads, InaccurateReads)
 PercentInaccurateReads = InaccurateReads/AllReads*100
 PercentInaccurateReadsTable = as.data.frame(PercentInaccurateReads)
-PercentInaccurateReadsTable$PLASMID=Plasmid
-write.csv(PercentInaccurateReads, paste("Table_Outputs/", Plasmid, "_percent_inaccurate_reads.csv", sep=""))
+PercentInaccurateReadsTable$plasmid=plasmid
+write.csv(PercentInaccurateReads, paste(outdir, "/", "table_outputs/", plasmid, "_percent_inaccurate_reads.csv", sep=""))
 
-PercentInaccurateReadsPlot = ggplot(PercentInaccurateReadsTable, aes(fill=PLASMID))+geom_bar(aes(x=PLASMID ,y=PercentInaccurateReads), width=0.67, stat="identity", colour="black")+
-  ylab("% Inaccurate Repair Reads")+scale_y_continuous(expand=c(0,0),limits=c(0,PercentInaccurateReadsTable$PercentInaccurateReads+5))+xlab("Plasmid")+
+PercentInaccurateReadsPlot = ggplot(PercentInaccurateReadsTable, aes(fill=plasmid))+geom_bar(aes(x=plasmid ,y=PercentInaccurateReads), width=0.67, stat="identity", colour="black")+
+  ylab("% Inaccurate Repair Reads")+scale_y_continuous(expand=c(0,0),limits=c(0,PercentInaccurateReadsTable$PercentInaccurateReads+5))+xlab("plasmid")+
   scale_fill_manual(values=c("black", "gray100", "gray75", "gray50"))+guides(fill="none")+theme_classic(base_size = 9)+
   theme(axis.text.x=element_text(size=9, face="bold"),axis.text.y=element_text(size=9, face="bold"),axis.title.x=element_text(size=10, face="bold"),
         axis.title.y=element_text(size=10, face="bold"))
 PercentInaccurateReadsPlot
-pdf(paste("Plots/", Plasmid, "_Percent_Inaccurate_Repair_Reads_Plot.pdf", sep=""), width=5)
+pdf(paste(outdir, "/", "plots/", plasmid, "_Percent_Inaccurate_Repair_Reads_Plot.pdf", sep=""), width=5)
 PercentInaccurateReadsPlot
 dev.off()
 
@@ -242,6 +260,7 @@ ConsistentInsertionsDRR$p_ID = paste(ConsistentInsertionsDRR$p1_start, Consisten
 DRRagg = aggregate(READS~p_ID, data=ConsistentInsertionsDRR, sum)
 DRRtable = as.data.frame(table(ConsistentInsertionsDRR$p_ID))
 DRRagg = merge(DRRagg, DRRtable, by.x="p_ID", by.y="Var1")
+
 ConsistentInsertionsDRR = merge(DRRagg, ConsistentInsertionsDRR, by="p_ID")
 ConsistentInsertionsDRRsimplifed = ConsistentInsertionsDRR[!duplicated(ConsistentInsertionsDRR$p_ID),]
 ConsistentInsertionsDRRsimplifed$p2_start2 = ConsistentInsertionsDRRsimplifed$p2_start-0.5
@@ -562,7 +581,7 @@ jxn = arrange(transform(jxn, jxnID=factor(jxnID, levels = jxnID)),jxnID)
 
 jxn3 = subset(jxn, p1_start2!=p2_start2)
 jxn3$percent_insertion_jxn <- jxn3$READS/sum(jxn3$READS)*100
-write.csv (jxn3, paste("Table_Outputs/", Plasmid, "_break.csv", sep=""))
+write.csv (jxn3, paste(outdir, "/", "table_outputs/", plasmid, "_break.csv", sep=""))
 
 #----------------Single-step Insertion Reads Primer Plot-------------------
 rect_left <- c(33.5,43.5,53.5,63.5,73.5,83.5,93.5,103.5,113.5,123.5,133.5,143.5,153.5,163.5,173.5,183.5,193.5)
@@ -583,7 +602,7 @@ PrimerPlot <- ggplot()+geom_boxplot(data=jxn3, aes(x=jxnID, ymin = p2_start2, lo
   geom_boxplot(data=jxn3, aes(x=jxnID, ymin = p1_start2, lower = p1_start2, middle = p1_start2, upper = p1_end2, ymax = p1_end2,
                                         fill=percent_insertion_jxn, linetype=mechanism),colour="black",stat = "identity",width=.8)+geom_hline(yintercept = BreakPointFromLeft+0.5, colour="red", size=0.6)
 PrimerPlot
-pdf(paste("Plots/", Plasmid, "_Ins_Primer_Plot.pdf", sep=""), height = 5, width = 10)
+pdf(paste(outdir, "/", "plots/", plasmid, "_Ins_Primer_Plot.pdf", sep=""), height = 5, width = 10)
 PrimerPlot
 dev.off()
 
@@ -597,14 +616,13 @@ RCMotif$DR_START_TRUE = "NA"
 RCMotif$DR_END_TRUE = "NA"
 RCMotif$mechanism = "Snap-back"
 InsRepeatMotif = rbind(DRMotif, RCMotif)
-
 InsRepeatMotif$MOTIF_START <- ifelse(InsRepeatMotif$DR_START_TRUE=="NA", InsRepeatMotif$RC_START_TRUE,
                                       InsRepeatMotif$DR_START_TRUE)
 InsRepeatMotif$MOTIF_END <- ifelse(InsRepeatMotif$DR_END_TRUE=="NA",InsRepeatMotif$RC_END_TRUE,
                                     InsRepeatMotif$DR_END_TRUE)
 InsRepeatMotif$motif <- paste(InsRepeatMotif$MOTIF_START,InsRepeatMotif$MOTIF_END,sep="-")
 InsRepeatMotif$motif_mechID <- paste(InsRepeatMotif$motif,InsRepeatMotif$mechanism,sep="-")
-write.csv(InsRepeatMotif,paste("Table_Outputs/", Plasmid, "_insertion_repeat_motif.csv", sep=""))
+write.csv(InsRepeatMotif,paste(outdir, "/", "table_outputs/", plasmid, "_insertion_repeat_motif.csv", sep=""))
 
 InsRepeatMotifLeft = subset(InsRepeatMotif, SIDE=="LEFT")
 InsRepeatMotifRight = subset(InsRepeatMotif, SIDE=="RIGHT")
@@ -614,6 +632,7 @@ InsRepeatMotifLeft$order = paste(10:(9+nrow(InsRepeatMotifLeft)), "-", sep="")
 InsRepeatMotifRight$order = paste(10:(9+nrow(InsRepeatMotifRight)), "-", sep="")
 InsRepeatMotif = rbind(InsRepeatMotifLeft, InsRepeatMotifRight)
 InsRepeatMotif = InsRepeatMotif[order(InsRepeatMotif$order, decreasing = TRUE),]
+## ERROR HERE bc $READS is $READS.x
 InsRepeatMotif$percent_insertion = InsRepeatMotif$READS/sum(InsRepeatMotif$READS)*100
 InsRepeatMotif$MOTIF_START2 = as.numeric(InsRepeatMotif$MOTIF_START)-0.5
 InsRepeatMotif$MOTIF_END2 = as.numeric(InsRepeatMotif$MOTIF_END)+0.5
@@ -644,7 +663,7 @@ RepeatMotifPlot <- ggplot()+
               upper = MOTIF_END2, ymax = MOTIF_END2,fill=percent_insertion, linetype=mechanism), colour="black",stat = "identity",
               width=.8,lwd=.5)+ geom_hline(yintercept = BreakPointFromLeft+0.5, colour="red", size=0.75)
 RepeatMotifPlot
-pdf(paste("Plots/", Plasmid, "_Insertion_Repeat_Motif_Plot.pdf", sep=""), height = 5, width = 10)
+pdf(paste(outdir, "/", "plots/", plasmid, "_Insertion_Repeat_Motif_Plot.pdf", sep=""), height = 5, width = 10)
 RepeatMotifPlot
 dev.off()
 
@@ -665,7 +684,7 @@ InsRight = rbind(InsRightLoop, InsRightSnap)
 InsFromBreak = rbind(InsLeft, InsRight)
 InsFromBreak = InsFromBreak[,-c(2:4, 6:19, 23:26, 28, 29, 51:65)]
 InsFromBreak$percent= (InsFromBreak$READS.y/sum(InsFromBreak$READS.y))*100
-write.csv(InsFromBreak, paste("Table_Outputs/", Plasmid, "_insertion_resection_data.csv", sep=""))
+write.csv(InsFromBreak, paste(outdir, "/", "table_outputs/", plasmid, "_insertion_resection_data.csv", sep=""))
 InsFromBreakMean=sum(InsFromBreak$RM_to_break*InsFromBreak$READS.y)/sum(InsFromBreak$READS.y)
 
 #----------------Insertion Resection - Plot - Side-----------
@@ -684,7 +703,7 @@ InsertionResectionPlotSide = ggplot(InsFromBreak)+
   theme(strip.text.x = element_text(size=10, face="bold"),
         strip.text.y = element_text(size=10, face="bold"))
 InsertionResectionPlotSide
-pdf(paste("Plots/", Plasmid, "_Insertion_Resection_Plot_Side.pdf", sep=""), height = 5, width = 10)
+pdf(paste(outdir, "/", "plots/", plasmid, "_Insertion_Resection_Plot_Side.pdf", sep=""), height = 5, width = 10)
 InsertionResectionPlotSide
 dev.off()
 
@@ -704,7 +723,7 @@ InsertionResectionPlotMechanism = ggplot(InsFromBreak)+
   theme(strip.text.x = element_text(size=10, face="bold"),
         strip.text.y = element_text(size=10, face="bold"))
 InsertionResectionPlotMechanism
-pdf(paste("Plots/", Plasmid, "_Insertion_Resection_Plot_Mechanism.pdf", sep=""), height = 5, width = 10)
+pdf(paste(outdir, "/", "plots/", plasmid, "_Insertion_Resection_Plot_Mechanism.pdf", sep=""), height = 5, width = 10)
 InsertionResectionPlotMechanism
 dev.off()
 
@@ -744,7 +763,7 @@ InsFlapPlot <- ggplot()+
                width=.8,lwd=.5)+ geom_hline(yintercept = BreakPointFromLeft+0.5, colour="red", size=0.75)
 
 InsFlapPlot
-pdf(paste("Plots/", Plasmid, "_Insertion_Flap_Plot.pdf", sep=""), height = 5, width = 10)
+pdf(paste(outdir, "/", "plots/", plasmid, "_Insertion_Flap_Plot.pdf", sep=""), height = 5, width = 10)
 InsFlapPlot
 dev.off()
 
@@ -762,7 +781,7 @@ InsSidePlot = ggplot(InsSide)+
   theme(strip.text.x = element_text(size=10, face="bold"),
         strip.text.y = element_text(size=10, face="bold"))
 InsSidePlot
-pdf(paste("Plots/", Plasmid, "_Insertion_Side_Usage_Plot.pdf", sep=""), height = 5, width = 10)
+pdf(paste(outdir, "/", "plots/", plasmid, "_Insertion_Side_Usage_Plot.pdf", sep=""), height = 5, width = 10)
 InsSidePlot
 dev.off()
 
@@ -799,7 +818,7 @@ DeletionData2 = arrange(transform(DeletionData2, motif_mechID=factor(motif_mechI
 DeletionData2$percent_deletion = DeletionData2$READS.x/sum(DeletionData2$READS.x)*100
 DeletionData2$MOTIF_START2 = as.numeric(DeletionData2$start)-0.5
 DeletionData2$MOTIF_END2 = as.numeric(DeletionData2$end)+0.5
-write.csv(DeletionData2, paste("Table_Outputs/", Plasmid, "_del_data_for_template_plot.csv", sep=""))
+write.csv(DeletionData2, paste(outdir, "/", "table_outputs/", plasmid, "_del_data_for_template_plot.csv", sep=""))
 
 DelMotif = data.frame(x=numeric(), y=numeric(), z=numeric(), w=numeric(), stringsAsFactors = FALSE)
 for(i in 1:nrow(DeletionData2)){
@@ -818,13 +837,13 @@ DelMotif2 = rbind(DelSnapBack, DelLoopOut)
 DelMotif2$x = "1"
 DelMotif2$percent_deletion = DelMotif2$READS/sum(DelMotif2$READS)*100
 DelMotif2$temp_coord2 = DelMotif2$temp_coord-0.5
-write.csv(DelMotif2, paste("Table_Outputs/", Plasmid, "_del_data_for_temp_plot_mech.csv", sep=""))
+write.csv(DelMotif2, paste(outdir, "/", "table_outputs/", plasmid, "_del_data_for_temp_plot_mech.csv", sep=""))
 
 DelMotif = aggregate(READS~temp_coord, data=DelMotif, sum)
-DelMotif$x = Plasmid
+DelMotif$x = plasmid
 DelMotif$percent_deletion = DelMotif$READS/sum(DelMotif$READS)*100
 DelMotif$temp_coord2 = DelMotif$temp_coord-0.5
-write.csv(DelMotif, paste("Table_Outputs/", Plasmid, "_del_data_for_temp_plot.csv", sep=""))
+write.csv(DelMotif, paste(outdir, "/", "table_outputs/", plasmid, "_del_data_for_temp_plot.csv", sep=""))
 
 #----------------Deletion Repeat Motif Plot-------------------
 DeletionData2 = arrange(transform(DeletionData2, motif_mechID=factor(motif_mechID, levels = motif_mechID)), motif_mechID)
@@ -879,7 +898,7 @@ DelMotifPlot = ggplot()+
                lwd=.5)+  
   geom_hline(yintercept = BreakPointFromLeft+0.5, colour="red", size=0.75)
 DelMotifPlot
-pdf(paste("Plots/", Plasmid, "_Deletion_Repeat_Motif.pdf", sep=""), height = 7, width = 10)
+pdf(paste(outdir, "/", "plots/", plasmid, "_Deletion_Repeat_Motif.pdf", sep=""), height = 7, width = 10)
 DelMotifPlot
 dev.off()
 
@@ -923,7 +942,7 @@ DelFlapMHJPlot <- ggplot()+
                width=.8,lwd=.5)+ geom_hline(yintercept = BreakPointFromLeft+0.5, colour="red", size=0.75)
 
 DelFlapMHJPlot
-pdf(paste("Plots/", Plasmid, "_Deletion_Flap_MHJ_Plot.pdf", sep=""), height = 5, width = 10)
+pdf(paste(outdir, "/", "plots/", plasmid, "_Deletion_Flap_MHJ_Plot.pdf", sep=""), height = 5, width = 10)
 DelFlapMHJPlot
 dev.off()
 
@@ -950,7 +969,7 @@ DelFlapABJPlot <- ggplot()+
                width=.8,lwd=.5)+ geom_hline(yintercept = BreakPointFromLeft+0.5, colour="red", size=0.75)
 
 DelFlapABJPlot
-pdf(paste("Plots/", Plasmid, "_Deletion_Flap_ABJ_Plot.pdf", sep=""), height = 5, width = 10)
+pdf(paste(outdir, "/", "plots/", plasmid, "_Deletion_Flap_ABJ_Plot.pdf", sep=""), height = 5, width = 10)
 DelFlapABJPlot
 dev.off()
 
@@ -963,7 +982,7 @@ DelRight$RM_to_break = DelRight$P1.to.Break
 DelFromBreak=rbind(DelLeft, DelRight)
 DelFromBreak=DelFromBreak[,-c(1,3, 20:23, 39, 40, 42,43,46, 47)]
 DelFromBreak$percent = (DelFromBreak$READS.x/sum(DelFromBreak$READS.x))*100
-write.csv(DelFromBreak, paste("Table_Outputs/", Plasmid, "_deletion_resection_data.csv", sep=""))
+write.csv(DelFromBreak, paste(outdir, "/", "table_outputs/", plasmid, "_deletion_resection_data.csv", sep=""))
 DelFromBreakMean=sum(DelFromBreak$RM_to_break*DelFromBreak$READS.x)/sum(DelFromBreak$READS.x)
 
 #----------------Deletion Resection - Plot - Break Side-----------
@@ -982,7 +1001,7 @@ DeletionResectionPlotSide = ggplot(DelFromBreak)+
   theme(strip.text.x = element_text(size=10, face="bold"),
         strip.text.y = element_text(size=10, face="bold"))
 DeletionResectionPlotSide
-pdf(paste("Plots/", Plasmid, "_Deletion_Resection_Plot_BreakSide.pdf", sep=""), height = 5, width = 10)
+pdf(paste(outdir, "/", "plots/", plasmid, "_Deletion_Resection_Plot_BreakSide.pdf", sep=""), height = 5, width = 10)
 DeletionResectionPlotSide
 dev.off()
 
@@ -1002,7 +1021,7 @@ DeletionResectionPlotMechanism = ggplot(DelFromBreak)+
   theme(strip.text.x = element_text(size=10, face="bold"),
         strip.text.y = element_text(size=10, face="bold"))
 DeletionResectionPlotMechanism
-pdf(paste("Plots/", Plasmid, "_Deletion_Resection_Plot_Mechanism.pdf", sep=""), height = 5, width = 10)
+pdf(paste(outdir, "/", "plots/", plasmid, "_Deletion_Resection_Plot_Mechanism.pdf", sep=""), height = 5, width = 10)
 DeletionResectionPlotMechanism
 dev.off()
 
@@ -1022,7 +1041,7 @@ DeletionResectionPlotRepairType = ggplot(DelFromBreak)+
   theme(strip.text.x = element_text(size=10, face="bold"),
         strip.text.y = element_text(size=10, face="bold"))
 DeletionResectionPlotRepairType
-pdf(paste("Plots/", Plasmid, "_Deletion_Resection_Plot_Repair_Type.pdf", sep=""), height = 5, width = 10)
+pdf(paste(outdir, "/", "plots/", plasmid, "_Deletion_Resection_Plot_Repair_Type.pdf", sep=""), height = 5, width = 10)
 DeletionResectionPlotRepairType
 dev.off()
 
@@ -1040,7 +1059,7 @@ DelSideMechPlot = ggplot(DelSide)+
   theme(strip.text.x = element_text(size=10, face="bold"),
         strip.text.y = element_text(size=10, face="bold"))
 DelSideMechPlot
-pdf(paste("Plots/", Plasmid, "_Deletion_Side_Usage_Mech_Plot.pdf", sep=""), height = 5, width = 10)
+pdf(paste(outdir, "/", "plots/", plasmid, "_Deletion_Side_Usage_Mech_Plot.pdf", sep=""), height = 5, width = 10)
 DelSideMechPlot
 dev.off()
 
@@ -1057,28 +1076,28 @@ DelSideTypePlot = ggplot(DelSide)+
   theme(strip.text.x = element_text(size=10, face="bold"),
         strip.text.y = element_text(size=10, face="bold"))
 DelSideTypePlot
-pdf(paste("Plots/", Plasmid, "_Deletion_Side_Usage_Repair_Type_Plot.pdf", sep=""), height = 5, width = 10)
+pdf(paste(outdir, "/", "plots/", plasmid, "_Deletion_Side_Usage_Repair_Type_Plot.pdf", sep=""), height = 5, width = 10)
 DelSideTypePlot
 dev.off()
 
 #----------------Consistency and Inaccurate Repair Plots - Data Manipulation------------------------
 #use the "all" Data Frame or import the _all_SD-MMEJ_consistency.csv
-#all = read.csv("Table_Outputs/_all_SD-MMEJ_consistency.csv", sep = ",", header = TRUE, row.names=1)
+#all = read.csv("table_outputs/_all_SD-MMEJ_consistency.csv", sep = ",", header = TRUE, row.names=1)
 Consistent = subset(all, CONSISTENCY=="TRUE")
 ConsistentReads = sum(Consistent$READS)
 Inconsistent = subset(all, CONSISTENCY=="FALSE")
-write.csv(Inconsistent, paste("Table_Outputs/", Plasmid, "_Inconsistent_data.csv", sep=""))
+write.csv(Inconsistent, paste(outdir, "/", "table_outputs/", plasmid, "_Inconsistent_data.csv", sep=""))
       #Open the .csv just written and sort through the inconsistent large complex events for real versus sequencing artifacts
-Inconsistent= read.csv(paste("Table_Outputs/", Plasmid, "_Inconsistent_data.csv", sep=""), row.names = 1)
+Inconsistent= read.csv(paste(outdir, "/", "table_outputs/", plasmid, "_Inconsistent_data.csv", sep=""), row.names = 1)
 InconsistentReads = sum(Inconsistent$READS)
 AllInaccurate= rbind(Consistent, Inconsistent)
 AllInaccurate$percent_inaccurate=AllInaccurate$READS/sum(AllInaccurate$READS)*100
 Consistent=subset(AllInaccurate, CONSISTENCY=="TRUE")
 Inconsistent = subset(AllInaccurate, CONSISTENCY=="FALSE")
 RepairType = c("InDel", "MHJ", "ABJ")
-PercentOfInaccurate = aggregate(as.numeric(percent_inaccurate)~REPAIR_TYPE+PLASMID,data=AllInaccurate, sum) #Breaks down the types of repair (consistent or not) amongst inaccurate repair events
+PercentOfInaccurate = aggregate(as.numeric(percent_inaccurate)~REPAIR_TYPE+plasmid,data=AllInaccurate, sum) #Breaks down the types of repair (consistent or not) amongst inaccurate repair events
 colnames(PercentOfInaccurate)[3]="percent_inaccurate"
-PercentInaccurate = aggregate(as.numeric(percent_inaccurate)~PLASMID,data=Consistent, sum) #Breaks down percent inaccurate repair that is consistent
+PercentInaccurate = aggregate(as.numeric(percent_inaccurate)~plasmid,data=Consistent, sum) #Breaks down percent inaccurate repair that is consistent
 colnames(PercentInaccurate)[2]="percent_inaccurate"
 Indel2 = subset(PercentOfInaccurate, REPAIR_TYPE=="InDel")
 MHJ2 = subset(PercentOfInaccurate, REPAIR_TYPE=="MHJ")
@@ -1111,39 +1130,39 @@ ABJFalseReads = sum(ABJFalse$READS)
 ABJPerConsistent = ABJTrueReads / ABJReads *100
 
 ConsistentRepairType = NULL
-ConsistentRepairType$PLASMID = c(Plasmid, Plasmid, Plasmid)
+ConsistentRepairType$plasmid = c(plasmid, plasmid, plasmid)
 ConsistentRepairType = as.data.frame(ConsistentRepairType)
 ConsistentRepairType$REPAIR_TYPE = c("InDel", "MHJ", "ABJ")
 ConsistentRepairType$percent_consistent = c(InDelPerConsistent, MHJPerConsistent, ABJPerConsistent)
 
 
 #----------------Consistency and Inaccurate Repair Plots------------------------
-InaccurateRepairPlot = ggplot(PercentOfInaccurate, aes(x=PLASMID, y=percent_inaccurate, fill=REPAIR_TYPE, label=REPAIR_TYPE))+ 
+InaccurateRepairPlot = ggplot(PercentOfInaccurate, aes(x=plasmid, y=percent_inaccurate, fill=REPAIR_TYPE, label=REPAIR_TYPE))+ 
   geom_bar(position="stack", stat="identity", colour="black")+
   theme_classic(base_size = 9)+ geom_text(position = position_stack(vjust=0.5), color=c("white","black","black"))+
   scale_fill_grey(start=0.0, end=1) +guides(fill="none")+
   scale_y_continuous(name = "% Inaccurate Reads", labels=c("0","25","50","75","100"), expand=c(0,0),limits=c(0,105),breaks=c(0,25,50,75,100))+
-  scale_x_discrete(name = "Plasmid")+
+  scale_x_discrete(name = "plasmid")+
   theme(axis.text.x=element_text(size=9, face="bold"),axis.text.y=element_text(size=9, face="bold"),axis.title.x=element_text(size=10, face="bold"),
   axis.title.y=element_text(size=10, face="bold"))
 InaccurateRepairPlot
-pdf(paste("Plots/", Plasmid, "_Inaccurate_Repair_Plot_All.pdf",sep=""), width=5)
+pdf(paste(outdir, "/", "plots/", plasmid, "_Inaccurate_Repair_Plot_All.pdf",sep=""), width=5)
 InaccurateRepairPlot
 dev.off()
 
-ConsistencyPlot = ggplot(PercentInaccurate, aes(fill=PLASMID))+ 
-  geom_bar(aes(x=PLASMID, y=percent_inaccurate), width=0.67,stat="identity",colour="black") +
+ConsistencyPlot = ggplot(PercentInaccurate, aes(fill=plasmid))+ 
+  geom_bar(aes(x=plasmid, y=percent_inaccurate), width=0.67,stat="identity",colour="black") +
   ylab("% SD-MMEJ consistent")+
-  scale_y_continuous(labels=c("0","25","50","75","100"),expand=c(0,0),limits=c(0,101),breaks=c(0,25,50,75,100))+xlab("Plasmid")+
+  scale_y_continuous(labels=c("0","25","50","75","100"),expand=c(0,0),limits=c(0,101),breaks=c(0,25,50,75,100))+xlab("plasmid")+
   scale_fill_manual(values=c("black", "gray100", "gray75", "gray50"))+guides(fill="none")+theme_classic(base_size = 9)+
   theme(axis.text.x=element_text(size=9, face="bold"),axis.text.y=element_text(size=9, face="bold"),axis.title.x=element_text(size=10, face="bold"),
   axis.title.y=element_text(size=10, face="bold"))
 ConsistencyPlot
-pdf(paste("Plots/", Plasmid, "_SD-MMEJ_Consistency_Plot.pdf", sep=""), width=5)
+pdf(paste(outdir, "/", "plots/", plasmid, "_SD-MMEJ_Consistency_Plot.pdf", sep=""), width=5)
 ConsistencyPlot
 dev.off()
 
-ConsistencyBreakdownPlot =  ggplot(ConsistentRepairType, aes(fill=PLASMID))+ 
+ConsistencyBreakdownPlot =  ggplot(ConsistentRepairType, aes(fill=plasmid))+ 
   geom_bar(aes(x=REPAIR_TYPE, y=percent_consistent), width=0.67,position = position_dodge(width=0.75),stat="identity",colour="black") +
   scale_x_discrete(limits=RepairType,expand=c(0,0.5),labels=c("InDel", "MHJ", "ABJ")) +ylab("% SD-MMEJ consistent")+
   scale_y_continuous(labels=c("0","25","50","75","100"),expand=c(0,0),limits=c(0,105),breaks=c(0,25,50,75,100))+
@@ -1152,15 +1171,15 @@ ConsistencyBreakdownPlot =  ggplot(ConsistentRepairType, aes(fill=PLASMID))+
   theme(axis.text.x=element_text(size=9, face="bold"),axis.text.y=element_text(size=9, face="bold"),axis.title.x=element_text(size=10, face="bold"),
   axis.title.y=element_text(size=10, face="bold"))
 ConsistencyBreakdownPlot
-pdf(paste("Plots/", Plasmid, "_SD-MMEJ_Consistency_Breakdown_Plot.pdf", sep=""))
+pdf(paste(outdir, "/", "plots/", plasmid, "_SD-MMEJ_Consistency_Breakdown_Plot.pdf", sep=""))
 ConsistencyBreakdownPlot
 dev.off()
 
 #--------------------Primer Distance and Length - Data Manipulation--------------------------
 # csv input - _break.csv exported at end of "Combining Direct Repeat and Reverse Complement Repeat" Section
-#InsBreaks = read.csv(paste("Table_Outputs/", Plasmid, "_break.csv", sep=""), row.names = 1)
+#InsBreaks = read.csv(paste(outdir, "/", "table_outputs/", plasmid, "_break.csv", sep=""), row.names = 1)
 InsBreaks = jxn3
-InsBreaks$PG = Plasmid
+InsBreaks$PG = plasmid
 no_trans = subset(InsBreaks, is_trans=="no")
 trans = subset(InsBreaks, is_trans=="trans")
 right = subset(no_trans, SIDE=="RIGHT")
@@ -1171,18 +1190,18 @@ trans$p1_p2 = 0
 dist = rbind(right,left,trans)
 dist.nt = subset(dist, mechanism!="Trans")
 dist.nt = subset(dist.nt, !(is.na(dist.nt["p1_length"])))
-lengthMean = data.frame(PLASMID=Plasmid, mean(dist.nt$p1_length))
+lengthMean = data.frame(plasmid=plasmid, mean(dist.nt$p1_length))
 colnames(lengthMean)[2]="mean"
-lengthMedian = data.frame(PLASMID=Plasmid, median(dist.nt$p1_length))
+lengthMedian = data.frame(plasmid=plasmid, median(dist.nt$p1_length))
 colnames(lengthMedian)[2]="median"
 dist.nt$p1_p2_abs = abs(dist.nt$p1_p2)
-distMean = data.frame(PLASMID=Plasmid, mean(dist.nt$p1_p2_abs))
+distMean = data.frame(plasmid=plasmid, mean(dist.nt$p1_p2_abs))
 colnames(distMean)[2] = "mean"
-distMedian = data.frame(PLASMID=Plasmid, median(dist.nt$p1_p2_abs))
+distMedian = data.frame(plasmid=plasmid, median(dist.nt$p1_p2_abs))
 colnames(distMedian)[2] = "median"
-len.mean = data.frame(PLASMID=Plasmid, mean(dist.nt$mh_length))
+len.mean = data.frame(plasmid=plasmid, mean(dist.nt$mh_length))
 colnames(len.mean)[2] = "mean"
-len.median = data.frame(PLASMID=Plasmid, median(dist.nt$mh_length))
+len.median = data.frame(plasmid=plasmid, median(dist.nt$mh_length))
 colnames(len.median)[2] = "median"
 
 PrimerData = jxn3[,c(1,2,33,31,32,40,41,23)]
@@ -1195,11 +1214,11 @@ PrimerData=rbind(PrimerDataLeft, PrimerDataRight)
 
 PrimerLength = aggregate(READS~Primer_Length, data=PrimerData, sum)
 PrimerLength$percent=PrimerLength$READS/sum(PrimerLength$READS)*100
-write.csv(PrimerLength, paste("Table_Outputs/", Plasmid, "_Primer_Length.csv", sep=""))
+write.csv(PrimerLength, paste(outdir, "/", "table_outputs/", plasmid, "_Primer_Length.csv", sep=""))
 
 PrimerDistance = aggregate(READS~Distance, data=PrimerData, sum)
 PrimerDistance$percent = PrimerDistance$READS/sum(PrimerDistance$READS)*100
-write.csv(PrimerDistance, paste("Table_Outputs/", Plasmid, "_Primer_Distance.csv", sep=""))
+write.csv(PrimerDistance, paste(outdir, "/", "table_outputs/", plasmid, "_Primer_Distance.csv", sep=""))
 
 #--------------------Primer Distance Plot - Inaccurate Reads--------------------------
 PrimerDistancePlotInaccurateReads = ggplot(dist.nt)+
@@ -1218,7 +1237,7 @@ PrimerDistancePlotInaccurateReads = ggplot(dist.nt)+
   theme(strip.text.x = element_text(size=10, face="bold"),
         strip.text.y = element_text(size=10, face="bold"))
 PrimerDistancePlotInaccurateReads
-pdf(paste("Plots/", Plasmid, "_Primer_Distance_Plot_Inaccurate_Reads.pdf", sep=""), width=15)
+pdf(paste(outdir, "/", "plots/", plasmid, "_Primer_Distance_Plot_Inaccurate_Reads.pdf", sep=""), width=15)
 PrimerDistancePlotInaccurateReads
 dev.off()
 
@@ -1239,7 +1258,7 @@ PrimerDistancePlotInsertion = ggplot(dist.nt)+
   theme(strip.text.x = element_text(size=10, face="bold"),
         strip.text.y = element_text(size=10, face="bold"))
 PrimerDistancePlotInsertion
-pdf(paste("Plots/", Plasmid, "_Primer_Distance_Plot_Insertion.pdf", sep=""), width=15)
+pdf(paste(outdir, "/", "plots/", plasmid, "_Primer_Distance_Plot_Insertion.pdf", sep=""), width=15)
 PrimerDistancePlotInsertion
 dev.off()
 
@@ -1260,7 +1279,7 @@ PrimerLengthPlotInsertion <- ggplot(dist.nt)+
   theme(strip.text.x = element_text(size=10, face="bold"),
         strip.text.y = element_text(size=10, face="bold"))
 PrimerLengthPlotInsertion
-pdf(paste("Plots/", Plasmid, "_Primer_Length_Plot_Insertion.pdf", sep=""), width=15)
+pdf(paste(outdir, "/", "plots/", plasmid, "_Primer_Length_Plot_Insertion.pdf", sep=""), width=15)
 PrimerLengthPlotInsertion
 dev.off()
 
@@ -1284,7 +1303,7 @@ MHLengthPlot = ggplot(MHlength)+
   theme(strip.text.x = element_text(size=10, face="bold"),
         strip.text.y = element_text(size=10, face="bold"))
 MHLengthPlot
-pdf(paste("Plots/", Plasmid, "_MH_Length_Plot_Consistent_InaccurateReads.pdf", sep=""), width = 10)
+pdf(paste(outdir, "/", "plots/", plasmid, "_MH_Length_Plot_Consistent_InaccurateReads.pdf", sep=""), width = 10)
 MHLengthPlot
 dev.off()
 
@@ -1309,7 +1328,7 @@ MHLengthPlotDeletion = ggplot(MHlengthdeletion)+
   theme(strip.text.x = element_text(size=10, face="bold"),
         strip.text.y = element_text(size=10, face="bold"))
 MHLengthPlotDeletion
-pdf(paste("Plots/", Plasmid, "_MH_Length_Plot_Deletion_Consistent.pdf", sep=""), width = 10)
+pdf(paste(outdir, "/", "plots/", plasmid, "_MH_Length_Plot_Deletion_Consistent.pdf", sep=""), width = 10)
 MHLengthPlot
 dev.off()
 
@@ -1335,7 +1354,7 @@ MHusagePlot <- ggplot(MHusage)+
   theme(strip.text.x = element_text(size=10, face="bold"),
         strip.text.y = element_text(size=10, face="bold"))
 MHusagePlot
-pdf(paste("Plots/", Plasmid, "_MH_Usage_Plot_InaccurateReads.pdf", sep=""), width = 15)
+pdf(paste(outdir, "/", "plots/", plasmid, "_MH_Usage_Plot_InaccurateReads.pdf", sep=""), width = 15)
 MHusagePlot
 dev.off()
 
@@ -1343,7 +1362,7 @@ dev.off()
 MHusageDeletion = aggregate(as.numeric(percent_deletion)~MICROHOMOLOGY, data=MHevents, sum)
 colnames(MHusageDeletion)[2]="percent_deletion"
 microhomology = MHusageDeletion$MICROHOMOLOGY
-write.csv(MHusageDeletion, paste("Table_Outputs/", Plasmid, "_MH_usage_consistent_deletions.csv", sep=""))
+write.csv(MHusageDeletion, paste(outdir, "/", "table_outputs/", plasmid, "_MH_usage_consistent_deletions.csv", sep=""))
 
 MHusagePlotDeletion <- ggplot(MHusageDeletion)+
   geom_histogram(aes(x=MICROHOMOLOGY, y=percent_deletion), position="stack", stat="identity", colour="black", fill="grey50") +
@@ -1362,7 +1381,7 @@ MHusagePlotDeletion <- ggplot(MHusageDeletion)+
   theme(strip.text.x = element_text(size=10, face="bold"),
         strip.text.y = element_text(size=10, face="bold"))
 MHusagePlotDeletion
-pdf(paste("Plots/", Plasmid, "_MH_Usage_Plot_Consistent_Deletions.pdf", sep=""), width = 15)
+pdf(paste(outdir, "/", "plots/", plasmid, "_MH_Usage_Plot_Consistent_Deletions.pdf", sep=""), width = 15)
 MHusagePlot
 dev.off()
 
@@ -1375,7 +1394,7 @@ AllInsLenMean = sum(ReadsAggInsertionLength$READSxLength)/sum(ReadsAggInsertionL
 
 ReadsAggInsertionLength = ReadsAggInsertionLength[-c(24),]
 
-len.median = data.frame(PLASMID="Iw7_Flex", median(dist.nt$mh_length))
+len.median = data.frame(plasmid="Iw7_Flex", median(dist.nt$mh_length))
 
 AllInsertionLengthPlot = ggplot(ReadsAggInsertionLength) + geom_bar(aes(x=INSERTION_LENGTH, y=Percent_Insertion, fill= CONSISTENCY), stat="identity", colour="black")+
   theme_bw()+scale_y_continuous(name = "Percent of Insertions")+ scale_x_continuous(name = "Insertion Length (bp)", breaks = seq(0, max(ReadsAggInsertionLength$INSERTION_LENGTH+1), by = 2))+
@@ -1390,7 +1409,7 @@ AllInsertionLengthPlot = ggplot(ReadsAggInsertionLength) + geom_bar(aes(x=INSERT
   geom_vline(aes(xintercept = AllInsLenMean), colour="blue", size=0.75,linetype = "longdash")
   #geom_vline(aes(xintercept = AllInsMedian), colour="red", size=0.75,linetype = "longdash")
 AllInsertionLengthPlot
-pdf(paste("Plots/", Plasmid, "_Insertion_Length_Plot_All.pdf", sep=""), width = 20)
+pdf(paste(outdir, "/", "plots/", plasmid, "_Insertion_Length_Plot_All.pdf", sep=""), width = 20)
 AllInsertionLengthPlot
 dev.off()
 
@@ -1412,7 +1431,7 @@ ConsistentInsertionLengthPlot = ggplot(ConsistentReadsAggInsertionLength) + geom
         strip.text.y = element_text(size=10, face="bold"))+
   geom_vline(aes(xintercept = ConsInsLenMean), colour="blue", size=0.75,linetype = "longdash")
 ConsistentInsertionLengthPlot
-pdf(paste("Plots/", Plasmid, "_Insertion_Length_Plot_Consistent.pdf", sep=""), width = 15)
+pdf(paste(outdir, "/", "plots/", plasmid, "_Insertion_Length_Plot_Consistent.pdf", sep=""), width = 15)
 ConsistentInsertionLengthPlot
 dev.off()
 
@@ -1434,7 +1453,7 @@ AllDeletionsLengthPlot = ggplot(AllDeletionsAggLength)+geom_bar(aes(x=deletion_l
         strip.text.y = element_text(size=10, face="bold"))+
   geom_vline(aes(xintercept = AllDeletionsAggMean), colour="blue", size=0.75,linetype = "longdash")
 AllDeletionsLengthPlot
-pdf(paste("Plots/", Plasmid, "_Deletion_Length_Plot_All.pdf", sep=""), width = 20)
+pdf(paste(outdir, "/", "plots/", plasmid, "_Deletion_Length_Plot_All.pdf", sep=""), width = 20)
 AllDeletionsLengthPlot
 dev.off()
 
@@ -1456,7 +1475,7 @@ ConsistentDeletionsLengthPlot = ggplot(ConsistentDeletionsAggLength)+geom_bar(ae
         strip.text.y = element_text(size=10, face="bold"))+
   geom_vline(aes(xintercept = ConDelAggMean), colour="blue", size=0.75,linetype = "longdash")
 ConsistentDeletionsLengthPlot
-pdf(paste("Plots/", Plasmid, "_Deletion_Length_Plot_Consistent.pdf", sep=""), width = 20)
+pdf(paste(outdir, "/", "plots/", plasmid, "_Deletion_Length_Plot_Consistent.pdf", sep=""), width = 20)
 ConsistentDeletionsLengthPlot
 dev.off()
 
