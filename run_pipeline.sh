@@ -64,5 +64,8 @@ echo "------"
 echo "Done insertion script on complex"
 echo "------"
 
+## Inter plots script ... 
+
+Rscript SDMMEJ_Plots.R $results_dir 
 
 echo "Results will be located in ${results_dir}"

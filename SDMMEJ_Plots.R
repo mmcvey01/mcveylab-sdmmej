@@ -12,6 +12,18 @@ library(tidyverse)
 library(reshape)
 library(plyr)
 
+# test if there is at least 5 argument: if not, return an error
+if (length(args)<5) {
+  stop("Usage: Rscript process_hifibr.R input_file.csv outdir search_radius debug", call.=FALSE)
+} else if (length(args)==5) {
+  input_file = args[1]
+  out_dir = args[2]
+  search_radius=as.integer(args[3])
+  break_location=as.integer(args[4])
+  debug=as.integer(args[5])
+}
+
+
 #----------------------Basic Information Input-----------------------------------
 BreakPointFromLeft = 161 #Input Break Point From Left used in Hi-FiBR
 BreakPointFromRight = 164 #Input Break Point From Right used in Hi-FiBR

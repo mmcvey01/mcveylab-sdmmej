@@ -502,6 +502,8 @@ rcl.umu$p2_start2 <- rcl.umu$p2_start-.5
 rcl.umu$p2_end2 <- rcl.umu$p2_end+.5
 
 
+
+
 # REVERSE COMPLEMENT - RIGHT SIDE
 rcr <- subset(mutIw7a.rc, side=="RIGHT")
 a6 <- data.frame(ID=numeric() ,x=numeric() , y=numeric() , stringsAsFactors = FALSE)
@@ -627,6 +629,19 @@ mutIw7.umu$ins_end2 <- mutIw7.umu$ins_end+.5
 mutIw7.umu$percent_insertion_jxn <- mutIw7.umu$READS.x/sum(mutIw7.umu$READS.x)*100
 
 ## ERROR rectangles used here but not defined 
+## COPYIED FROM BELOW, THE RECTANGLES ARE IN THE WRONG PLACE
+rect_left <- c(33.5,43.5,53.5,63.5,73.5,83.5,93.5,103.5,113.5,123.5,133.5,143.5)
+rectangles <- data.frame(
+  xmin = rect_left,
+  xmax = rect_left + 5,
+  ymin = -Inf,
+  ymax = Inf
+)
+rectangles
+rectangles[9,2] <- 118.5
+
+
+
 f2 <- ggplot()+
   geom_boxplot(data=mutIw7.umu, aes(x=p2_mechID, ymin = p2_start2, lower = p2_start2, middle = p2_start2, 
                                     upper = p2_end2, ymax = p2_end2,
@@ -640,15 +655,22 @@ f2 <- ggplot()+
                        values=c(1.0,0.8,0.6,0.4,0.2,0),
                        limits=c(0,16),
                        guide_legend(title="% Single-step\nInsertion Reads"))+
-  scale_y_continuous(limits=c(130,190),
-                     breaks=51:125,
-                     labels = c("A", "G", "C", "C", "G","A", "A", "T", "T", "C", "G", "G", "T", "A", "C", "A", "T", "T", "A", "C", "C", 
-                                "C", "T", "G", "t", "t", "a", "t", "C", "C", "C", "T", "A", "G", "C", 
-                                "G", "G", "C", "C", "G", "C", "A","T", "A","G", "G", "C", "C", 
-                                "A", "C", "T","A", "G", "T", "G", "G", "A", "T","C", "T", "G", "G", "A", 
-                                "T", "C", "C","T","C","T","A","G","A","G","T","C"), #CCCTAGC  TATGGTC   TGCGCTACT   AGTGGATCTGGGGCC   GCATAGGCC
+  ## UPDATED
+  scale_y_continuous(limits=c(left_lim,right_lim),
+                     breaks=left_lim:right_lim,
+                     labels = axis_label,
                      name = "Nucleotide",
-                     expand=c(0,0))+
+                     expand=c(0,0)) +
+  
+  # scale_y_continuous(limits=c(130,190),
+  #                    breaks=51:125,
+  #                    labels = c("A", "G", "C", "C", "G","A", "A", "T", "T", "C", "G", "G", "T", "A", "C", "A", "T", "T", "A", "C", "C", 
+  #                               "C", "T", "G", "t", "t", "a", "t", "C", "C", "C", "T", "A", "G", "C", 
+  #                               "G", "G", "C", "C", "G", "C", "A","T", "A","G", "G", "C", "C", 
+  #                               "A", "C", "T","A", "G", "T", "G", "G", "A", "T","C", "T", "G", "G", "A", 
+  #                               "T", "C", "C","T","C","T","A","G","A","G","T","C"), #CCCTAGC  TATGGTC   TGCGCTACT   AGTGGATCTGGGGCC   GCATAGGCC
+  #                    name = "Nucleotide",
+  #                    expand=c(0,0))+
   theme_classic(base_size = 18)+
   theme(axis.text.y= element_blank(),
         axis.title.y=element_blank(),
@@ -679,16 +701,22 @@ f2 <- ggplot()+
   scale_fill_gradientn(colours = c("red","yellow","green","lightblue","darkblue"),
                        values=c(1.0,0.8,0.6,0.4,0.2,0),
                        guide_legend(title="% Inaccurate\nReads"))+
-  scale_y_continuous(limits=c(130,190),
-                     breaks=51:125,
-                     labels = c("A", "G", "C", "C", "G","A", "A", "T", "T", "C", "G", "G", "T", "A", "C", "A", "T", "T", "A", "C", "C", 
-                                "C", "T", "G", "t", "t", "a", "t", "C", "C", "C", "T", "A", "G", "C", 
-                                "T", "A", "T", "G", "G", "T", "C", 
-                                "T", "G", "C", "G", "C", "T", "A", "C", "T", 
-                                "A", "G", "T", "G", "G", "A", "T", "C", "T", "G", "G", "G", "G", "C", "C",
-                                "G","C","A","T","A","G","G","C","C"), #CCCTAGC  TATGGTC   TGCGCTACT   AGTGGATCTGGGGCC   GCATAGGCC
+  ## UPDATED
+  scale_y_continuous(limits=c(left_lim,right_lim),
+                     breaks=left_lim:right_lim,
+                     labels = axis_label,
                      name = "Nucleotide",
-                     expand=c(0,0))+
+                     expand=c(0,0)) +
+  # scale_y_continuous(limits=c(130,190),
+  #                    breaks=51:125,
+  #                    labels = c("A", "G", "C", "C", "G","A", "A", "T", "T", "C", "G", "G", "T", "A", "C", "A", "T", "T", "A", "C", "C", 
+  #                               "C", "T", "G", "t", "t", "a", "t", "C", "C", "C", "T", "A", "G", "C", 
+  #                               "T", "A", "T", "G", "G", "T", "C", 
+  #                               "T", "G", "C", "G", "C", "T", "A", "C", "T", 
+  #                               "A", "G", "T", "G", "G", "A", "T", "C", "T", "G", "G", "G", "G", "C", "C",
+  #                               "G","C","A","T","A","G","G","C","C"), #CCCTAGC  TATGGTC   TGCGCTACT   AGTGGATCTGGGGCC   GCATAGGCC
+  #                    name = "Nucleotide",
+  #                    expand=c(0,0))+
   theme_classic(base_size = 18)+
   theme(axis.text.y= element_blank(),
         axis.title.y=element_blank(),
@@ -716,6 +744,7 @@ f2 <- ggplot()+
   geom_hline(yintercept = c(74.5,78.5), colour="red", size=0.8)
 f2
 
+## STARTING HERE
 
 # Create _break.csv
 write.csv(mutIw7break, out_break)
@@ -774,14 +803,19 @@ f2 <- ggplot()+
                        values=c(1.0,0.8,0.6,0.4,0.2,0),
                        limits=c(0,13),
                        guide_legend(title="% Single-step\nInsertion Reads"))+
-  scale_y_continuous(limits=c(40,120),
-                     breaks=44:115,
-                     labels = c("A", "G", "C", "A", #static
-                                "G", "C", "C", "G", "A", "A", "T", "T", "C", "G", "G", "T", "A",
-                                "C", "A", "T", "T", "A", "C", "C", "C", "T", "G", "T", "T", "A", "T", "C", "C", "C", "T", "A", "G", #static
-                                "C", "G", "G", "C", "C", "G", "C", "A", "T", "A", "G", "G", "C", "C",
-                                "A", "C", "T", "A", "G", "T", "G", "G", "A", "T", "C", "T", "G",
-                                "G", "A", "T", "C", "C", "T", "C", "T"),
+  scale_y_continuous(limits=c(left_lim,right_lim),
+                     breaks=left_lim:right_lim,
+                     labels = axis_label,
+                     name = "Nucleotide",
+                     expand=c(0,0)) +
+  # scale_y_continuous(limits=c(40,120),
+  #                    breaks=44:115,
+  #                    labels = c("A", "G", "C", "A", #static
+  #                               "G", "C", "C", "G", "A", "A", "T", "T", "C", "G", "G", "T", "A",
+  #                               "C", "A", "T", "T", "A", "C", "C", "C", "T", "G", "T", "T", "A", "T", "C", "C", "C", "T", "A", "G", #static
+  #                               "C", "G", "G", "C", "C", "G", "C", "A", "T", "A", "G", "G", "C", "C",
+  #                               "A", "C", "T", "A", "G", "T", "G", "G", "A", "T", "C", "T", "G",
+  #                               "G", "A", "T", "C", "C", "T", "C", "T"),
                     
                      # Iw7 AGCA
                      # AGCA
@@ -897,8 +931,8 @@ f2 <- ggplot()+
                      #            "G", "A", "T", "C", "C", "T", "C", "T"),
                      
 # AGCATTACCCTGTTATCCC-TAGAGGCCTTTTTGGCCGGTTTCTAAATAAGATCCTCT
-                     name = "Nucleotide",
-                     expand=c(0,0))+
+ #                    name = "Nucleotide",
+  #                   expand=c(0,0))+
   theme_classic(base_size = 10)+
   theme(axis.text.y= element_blank(),
         axis.title.y=element_blank(),
@@ -995,16 +1029,21 @@ f2 <- ggplot()+
                        values=c(1.0,0.8,0.6,0.4,0.2,0),
                        guide_legend(title="% Single-step\nInsertion Reads"),
                        limits=c(0,9.25))+
-  scale_y_continuous(limits=c(40,120),
-                     breaks=44:115,
-                     labels = c("A", "G", "C", "A", #static
-                                "G", "C", "C", "G", "A", "A", "T", "T", "C", "G", "G", "T", "A",
-                                "C", "A", "T", "T", "A", "C", "C", "C", "T", "G", "T", "T", "A", "T", "C", "C", "C", "T", "A", "G", #static
-                                "C", "G", "G", "C", "C", "G", "C", "A", "T", "A", "G", "G", "C", "C",
-                                "A", "C", "T", "A", "G", "T", "G", "G", "A", "T", "C", "T", "G",
-                                "G", "A", "T", "C", "C", "T", "C", "T"),
+  scale_y_continuous(limits=c(left_lim,right_lim),
+                     breaks=left_lim:right_lim,
+                     labels = axis_label,
                      name = "Nucleotide",
-                     expand=c(0,0))+
+                     expand=c(0,0)) +
+  # scale_y_continuous(limits=c(40,120),
+  #                    breaks=44:115,
+  #                    labels = c("A", "G", "C", "A", #static
+  #                               "G", "C", "C", "G", "A", "A", "T", "T", "C", "G", "G", "T", "A",
+  #                               "C", "A", "T", "T", "A", "C", "C", "C", "T", "G", "T", "T", "A", "T", "C", "C", "C", "T", "A", "G", #static
+  #                               "C", "G", "G", "C", "C", "G", "C", "A", "T", "A", "G", "G", "C", "C",
+  #                               "A", "C", "T", "A", "G", "T", "G", "G", "A", "T", "C", "T", "G",
+  #                               "G", "A", "T", "C", "C", "T", "C", "T"),
+  #                    name = "Nucleotide",
+  #                    expand=c(0,0))+
   theme_classic(base_size = 10)+
   theme(legend.text=element_text(size=8,face="bold"),
         axis.text.y= element_blank(),
@@ -1033,7 +1072,7 @@ f2
 
 
 
-
+### I AM HERE NOW
 
 # ============================================= Deletion Repeat Motif Plot (Expanded) ======================================================
 # csv input - _combined_curated, _python_spreadsheet (data from top of python output), _sample_ID (ID and RECONSTRUCTED_SEQ of python input), del_data_for_template_plot
@@ -1049,17 +1088,17 @@ del <- subset(m, CLASS=="deletion")
 
 a <- read.table(in_consistency_table,sep="\t",header=T) # This file is from the deletion program's python consistency table. Import into excel from txt and then take the top of it.
 b <- read.csv(in_consistency_log) # this file is created by opening the python output file and copying the sequences and ID into an excel sheet and splitting it into ID and Reconstructued seq --> to get reconstructed seq, remove all "-" in the aligned seqs
-view(a)
+head(a)
 ab <- merge(a, b, by.x="Sample.ID", by.y="ID")
-## ERROR WHAT ID is this merging and what happens to the NA?
+## ERROR WHAT ID is this merging and what happens to the NA
 
 ab$RECONSTRUCTED_SEQ = ab$SEQ
-view(ab)
+head(ab)
 
 abc <- merge(ab,m, by=c("RECONSTRUCTED_SEQ"), all.x=TRUE)
 
 ## ERROR I THINK THIS MERGE ISN't WORKING - maybe the ab SEQ needs to go to all caps
-view(abc)
+head(abc)
 
 abc$start <- ifelse(abc$Break.Side=="left",
                     (78-abc$Motif.to.Break), (78+abc$Motif.to.Break-abc$Motif.Length))
@@ -1161,16 +1200,21 @@ f2 <- ggplot()+
                        values=c(1.0,0.8,0.6,0.4,0.2,0),
                        limits=c(0,14.5),
                        guide_legend(title="% SD-MMEJ\nConsistent\nDeletion Reads"))+
-  scale_y_continuous(limits=c(40,120),
-                     breaks=44:115,
-                     labels = c("A", "G", "C", "A", #static
-                                "G", "C", "C", "G", "A", "A", "T", "T", "C", "G", "G", "T", "A",
-                                "C", "A", "T", "T", "A", "C", "C", "C", "T", "G", "T", "T", "A", "T", "C", "C", "C", "T", "A", "G", #static
-                                "C", "G", "G", "C", "C", "G", "C", "A", "T", "A", "G", "G", "C", "C",
-                                "A", "C", "T", "A", "G", "T", "G", "G", "A", "T", "C", "T", "G",
-                                "G", "A", "T", "C", "C", "T", "C", "T"),
+  scale_y_continuous(limits=c(left_lim,right_lim),
+                     breaks=left_lim:right_lim,
+                     labels = axis_label,
                      name = "Nucleotide",
-                     expand=c(0,0))+
+                     expand=c(0,0)) +
+  # scale_y_continuous(limits=c(40,120),
+  #                    breaks=44:115,
+  #                    labels = c("A", "G", "C", "A", #static
+  #                               "G", "C", "C", "G", "A", "A", "T", "T", "C", "G", "G", "T", "A",
+  #                               "C", "A", "T", "T", "A", "C", "C", "C", "T", "G", "T", "T", "A", "T", "C", "C", "C", "T", "A", "G", #static
+  #                               "C", "G", "G", "C", "C", "G", "C", "A", "T", "A", "G", "G", "C", "C",
+  #                               "A", "C", "T", "A", "G", "T", "G", "G", "A", "T", "C", "T", "G",
+  #                               "G", "A", "T", "C", "C", "T", "C", "T"),
+  #                    name = "Nucleotide",
+  #                    expand=c(0,0))+
   theme_classic(base_size = 10)+
   theme(legend.text=element_text(size=8,face="bold"),
         axis.text.y= element_blank(),
