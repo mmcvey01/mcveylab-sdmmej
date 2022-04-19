@@ -15,7 +15,7 @@ suppressPackageStartupMessages({
 })
 
 #In order to debug, uncomment this and comment the command line information
-#outdir, "/"="~/Box/bioinformatics_research_technology/rt_bioinformatics_consultations/mcvey_lab_rt_bioinformatics/terrence_dna_repair/TestData/PolyGSeq_output/"
+#outdir="~/Box/bioinformatics_research_technology/rt_bioinformatics_consultations/mcvey_lab_rt_bioinformatics/terrence_dna_repair/TestData/PolyGSeq_output/"
 #plasmid="PolyGSeq"
 
 ##test if there is at least 2 argument: if not, return an error
@@ -579,7 +579,12 @@ jxn = rbind(jxnLeft, jxnRight)
 jxn = jxn[order(jxn$order, decreasing=TRUE),]
 jxn = arrange(transform(jxn, jxnID=factor(jxnID, levels = jxnID)),jxnID)
 
+## Remove not actual insertion events, most of these are complex events that are actually simple deletions.
+## Nick will send Rebecca some examples to check where they are being misidentified
 jxn3 = subset(jxn, p1_start2!=p2_start2)
+jxn3=subset(jxn3, abs(p1_start-p2_start)>=2)
+jxn3=subset(jxn3, abs(p1_start-p2_end)>2)
+jxn3=subset(jxn3, p1_start2!=p1_end2)
 jxn3$percent_insertion_jxn <- jxn3$READS/sum(jxn3$READS)*100
 write.csv (jxn3, paste(outdir, "/", "table_outputs/", plasmid, "_break.csv", sep=""))
 
@@ -632,12 +637,17 @@ InsRepeatMotifLeft$order = paste(10:(9+nrow(InsRepeatMotifLeft)), "-", sep="")
 InsRepeatMotifRight$order = paste(10:(9+nrow(InsRepeatMotifRight)), "-", sep="")
 InsRepeatMotif = rbind(InsRepeatMotifLeft, InsRepeatMotifRight)
 InsRepeatMotif = InsRepeatMotif[order(InsRepeatMotif$order, decreasing = TRUE),]
-## ERROR HERE bc $READS is $READS.x
-InsRepeatMotif$percent_insertion = InsRepeatMotif$READS/sum(InsRepeatMotif$READS)*100
 InsRepeatMotif$MOTIF_START2 = as.numeric(InsRepeatMotif$MOTIF_START)-0.5
 InsRepeatMotif$MOTIF_END2 = as.numeric(InsRepeatMotif$MOTIF_END)+0.5
+
+## multiple repeat motifs can have same primer pairs
+## this code is also removing complex that are actually simple deletions
 InsRepeatMotif = subset(InsRepeatMotif, p1_start!=p2_start)
 InsRepeatMotif = subset(InsRepeatMotif, !(p2_end>p1_start & p2_end<p1_end))
+InsRepeatMotif = subset(InsRepeatMotif, abs(p1_start-p2_start)>=2)
+InsRepeatMotif = subset(InsRepeatMotif, abs(p1_start-p2_end)>2)
+InsRepeatMotif1 = subset(InsRepeatMotif, MOTIF_END2>BreakPointFromLeft+0.5 & MOTIF_START2<BreakPointFromLeft+0.5)
+InsRepeatMotif = setdiff(InsRepeatMotif, InsRepeatMotif1)
 InsRepeatMotif$percent_insertion = (InsRepeatMotif$READS.y/sum(InsRepeatMotif$READS.y))*100
 
 #----------------Insertion Repeat Motif Plot-------------------
@@ -1181,13 +1191,14 @@ dev.off()
 InsBreaks = jxn3
 InsBreaks$PG = plasmid
 no_trans = subset(InsBreaks, is_trans=="no")
-trans = subset(InsBreaks, is_trans=="trans")
+#trans = subset(InsBreaks, is_trans=="trans")
 right = subset(no_trans, SIDE=="RIGHT")
 left = subset(no_trans, SIDE=="LEFT")
 right$p1_p2 = right$p1_start-(right$p2_end+1)
 left$p1_p2 = left$p2_start-(left$p1_end+1)
-trans$p1_p2 = 0
-dist = rbind(right,left,trans)
+#trans$p1_p2 = 0
+#dist = rbind(right,left,trans)
+dist = rbind(right,left)
 dist.nt = subset(dist, mechanism!="Trans")
 dist.nt = subset(dist.nt, !(is.na(dist.nt["p1_length"])))
 lengthMean = data.frame(plasmid=plasmid, mean(dist.nt$p1_length))
@@ -1382,7 +1393,7 @@ MHusagePlotDeletion <- ggplot(MHusageDeletion)+
         strip.text.y = element_text(size=10, face="bold"))
 MHusagePlotDeletion
 pdf(paste(outdir, "/", "plots/", plasmid, "_MH_Usage_Plot_Consistent_Deletions.pdf", sep=""), width = 15)
-MHusagePlot
+MHusagePlotDeletion
 dev.off()
 
 #--------------------------Insertion Length Plot - All----------------

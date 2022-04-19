@@ -65,6 +65,10 @@ echo "------"
 
 ## Run plotting script
 
+echo "------"
+echo "Starting plotting script"
+echo "------"
+
 Rscript SDMMEJ_Plots.R $results_dir $bn
 
 echo "------"
