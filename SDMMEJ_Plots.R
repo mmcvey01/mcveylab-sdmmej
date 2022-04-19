@@ -77,7 +77,7 @@ accurate = subset(CombinedCurated,CLASS=="exact")
 accurate$percent_inaccurate <- "NA"
 inaccurate$percent_inaccurate <- inaccurate$READS/sum(inaccurate$READS)*100
 CombinedCurated = rbind(accurate,inaccurate)
-
+#comment comment comment ###
 #reorganizing data by repair event classification
 deletions = subset(CombinedCurated, CLASS_final=="deletion")
 complex = subset(CombinedCurated, CLASS_final=="complex")
