@@ -77,7 +77,7 @@ accurate = subset(CombinedCurated,CLASS=="exact")
 accurate$percent_inaccurate <- "NA"
 inaccurate$percent_inaccurate <- inaccurate$READS/sum(inaccurate$READS)*100
 CombinedCurated = rbind(accurate,inaccurate)
-#comment comment comment ###
+
 #reorganizing data by repair event classification
 deletions = subset(CombinedCurated, CLASS_final=="deletion")
 complex = subset(CombinedCurated, CLASS_final=="complex")
@@ -986,9 +986,9 @@ dev.off()
 #----------------Deletion Resection - Data Manipulation-----------
 #To generate a plot of the furthest identifiable point of resection or duplex unwinding = furthest from break repeat motif
 DelLeft=subset(DeletionData2, Break.Side == "left")
-DelLeft$RM_to_break= DelLeft$P1.to.Break
+DelLeft$RM_to_break= abs(DelLeft$P1.to.Break)
 DelRight=subset(DeletionData2, Break.Side=="right")
-DelRight$RM_to_break = DelRight$P1.to.Break
+DelRight$RM_to_break = abs(DelRight$P1.to.Break)
 DelFromBreak=rbind(DelLeft, DelRight)
 DelFromBreak=DelFromBreak[,-c(1,3, 20:23, 39, 40, 42,43,46, 47)]
 DelFromBreak$percent = (DelFromBreak$READS.x/sum(DelFromBreak$READS.x))*100
