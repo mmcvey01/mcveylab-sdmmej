@@ -14,9 +14,6 @@ suppressWarnings(suppressMessages({
   library(plyr)
 }))
 
-#In order to debug, uncomment this and comment the command line information
-#outdir="~/Box/bioinformatics_research_technology/rt_bioinformatics_consultations/mcvey_lab_rt_bioinformatics/terrence_dna_repair/TestData/PolyGSeq_output/"
-#plasmid="PolyGSeq"
 
 ##test if there is at least 2 argument: if not, return an error
 if (length(args)<2) {
@@ -26,11 +23,14 @@ if (length(args)<2) {
   plasmid=args[2]
 }
 
+#In order to debug, uncomment this and comment the command line information
+#outdir="/Users/rbator01/Library/CloudStorage/Box-Box/bioinformatics_research_technology/rt_bioinformatics_consultations/mcvey_lab_rt_bioinformatics/terrence_dna_repair/HiSeq_CRISPR_Data/renamed_files/R988_output/"
+#plasmid="R988"
+
 #-----------------------Read In Data Frames--------------------------------------
 # Read in "_insertion_insertion_consistency2.csv" file from SDMMEJ pipeline
 
 inHifibrReclassified<-read.csv(paste0(outdir, "/", plasmid, "_reclassified.csv"))
-view(inHifibrReclassified)
 insertionsConsistent = read.csv(paste0(outdir, "/", plasmid,"_insertion_insertion_consistency2.csv"),row.names=1)
 
 complexConsistent = read.csv(paste0(outdir, "/", plasmid, "_complex_insertion_consistency2.csv"), row.names = 1)
@@ -193,157 +193,174 @@ RPrimerPlotPoints = c() # Creates new data frame "RPrimerPlotPoints" for the for
 LPrimerPlotPoints = c() # Creates new data frame "LPrimerPlotPoints" for the for loop below
 
 #----------------Direct Repeat- Right Side-----------------------------------------
-for (i in 1:nrow(ConsistentInsertionsDRR)){ 
-  Ins <- as.character(ConsistentInsertionsDRR[i,35])    # creates insertion sequence region to search using "insertion" column
-  dr1 <- as.data.frame(str_locate_all(ConsistentInsertionsDRR[i,43], Ins)) # search deletion sequence for string using "RM" column
-  if (nrow(dr1)!=1){
-    dr2 <- dr1
-    while (nrow(dr2)!=1){
-      for (j in 1:nrow(dr1)){
-        if (dr1[j,2]==nchar(allowNA=FALSE, as.character(ConsistentInsertionsDRR[i,43]))){ #RM column
-          break
-        }else{
-          prim <- paste(substring(ConsistentInsertionsDRR[i,43],1,dr1[j,1]-1), substring(ConsistentInsertionsDRR[i,43],dr1[j,2]+1,nchar(as.character(ConsistentInsertionsDRR[i,43]))),sep="")
-          s <- dr1[j,1]-1
-          der <- substring(as.character(ConsistentInsertionsDRR[i,34]), first=ConsistentInsertionsDRR[i,32]-(s-1), last=ConsistentInsertionsDRR[i,33]+(nchar(as.character(ConsistentInsertionsDRR[i,43]))-dr1[j,2]))
-                                                #delSeq column                              #left_del                         #right_del
-          dr3 <- as.data.frame(str_locate_all(der, prim))
-          if (nrow(dr3)==0){ # if there is a match, then make dr3=dr2, which will make the nrow(dr2)=1, breaking the while loop
-            next
-          } else{
-            dr2 <- dr3
-            k <- j
+if (nrow(ConsistentInsertionsDRR) > 0){
+  for (i in 1:nrow(ConsistentInsertionsDRR)){ 
+    Ins <- as.character(ConsistentInsertionsDRR[i,35])    # creates insertion sequence region to search using "insertion" column
+    dr1 <- as.data.frame(str_locate_all(ConsistentInsertionsDRR[i,43], Ins)) # search deletion sequence for string using "RM" column
+    if (nrow(dr1)!=1){
+      dr2 <- dr1
+      while (nrow(dr2)!=1){
+        for (j in 1:nrow(dr1)){
+          if (dr1[j,2]==nchar(allowNA=FALSE, as.character(ConsistentInsertionsDRR[i,43]))){ #RM column
+            break
+          }else{
+            prim <- paste(substring(ConsistentInsertionsDRR[i,43],1,dr1[j,1]-1), substring(ConsistentInsertionsDRR[i,43],dr1[j,2]+1,nchar(as.character(ConsistentInsertionsDRR[i,43]))),sep="")
+            s <- dr1[j,1]-1
+            der <- substring(as.character(ConsistentInsertionsDRR[i,34]), first=ConsistentInsertionsDRR[i,32]-(s-1), last=ConsistentInsertionsDRR[i,33]+(nchar(as.character(ConsistentInsertionsDRR[i,43]))-dr1[j,2]))
+            #delSeq column                              #left_del                         #right_del
+            dr3 <- as.data.frame(str_locate_all(der, prim))
+            if (nrow(dr3)==0){ # if there is a match, then make dr3=dr2, which will make the nrow(dr2)=1, breaking the while loop
+              next
+            } else{
+              dr2 <- dr3
+              k <- j
+            }
           }
         }
+        break
       }
-      break
+      RPrimerPlotPoints1 <- cbind(ConsistentInsertionsDRR[i,47], dr1[k,]) # once we know which one we want, we put that dr1 row
+      #motif_ID
+      RPrimerPlotPoints <- rbind(RPrimerPlotPoints,RPrimerPlotPoints1)
+    } else {
+      RPrimerPlotPoints1 <- cbind(ConsistentInsertionsDRR[i,47], dr1)
+      RPrimerPlotPoints <- rbind(RPrimerPlotPoints,RPrimerPlotPoints1)
     }
-    RPrimerPlotPoints1 <- cbind(ConsistentInsertionsDRR[i,47], dr1[k,]) # once we know which one we want, we put that dr1 row
-    #motif_ID
-    RPrimerPlotPoints <- rbind(RPrimerPlotPoints,RPrimerPlotPoints1)
-  } else {
-    RPrimerPlotPoints1 <- cbind(ConsistentInsertionsDRR[i,47], dr1)
-    RPrimerPlotPoints <- rbind(RPrimerPlotPoints,RPrimerPlotPoints1)
   }
-}
-colnames(RPrimerPlotPoints)[1] = "motif_ID"
-RPrimerPlotPoints = RPrimerPlotPoints[!duplicated(RPrimerPlotPoints$motif_ID),] #Removes duplicate repeat motif IDs
-            #This shouldn't remove anything because they were removed above, but just making sure so nothing is double counted    #
-
-RPrimerPlotPoints$is_trans = ifelse(ConsistentInsertionsDRR$DR_START_TRUE<BreakPointFromLeft,
-                                    ifelse(ConsistentInsertionsDRR$DR_START_TRUE>BreakPointFromLeft, "trans", "no"), "no")
-            #I don't understand this ifelse statement above, its illogical and will always lead to no       #
-
-RPrimerPlotPoints$p1_start = ifelse(RPrimerPlotPoints$is_trans=="trans",
-                                    ConsistentInsertionsDRR$DR_START_TRUE, (ConsistentInsertionsDRR$DR_END_TRUE+1)-
-                                      (nchar(as.character(ConsistentInsertionsDRR$RM))-RPrimerPlotPoints$end))
-RPrimerPlotPoints$p1_end = ifelse(RPrimerPlotPoints$is_trans=="trans",
-                                  ConsistentInsertionsDRR$DR_START_TRUE+(RPrimerPlotPoints$start-2),
-                                  ConsistentInsertionsDRR$DR_END_TRUE)
-RPrimerPlotPoints$p1_length = 1+(RPrimerPlotPoints$p1_end - RPrimerPlotPoints$p1_start)
-RPrimerPlotPoints$mh_start = ifelse(RPrimerPlotPoints$is_trans=="trans", 
-                                    (ConsistentInsertionsDRR$DR_END_TRUE+1)-(nchar(as.character(ConsistentInsertionsDRR$RM))-RPrimerPlotPoints$end), 
-                                    ConsistentInsertionsDRR$DR_START_TRUE)
-RPrimerPlotPoints$mh_end = ifelse(RPrimerPlotPoints$is_trans=="trans",
-                                  ConsistentInsertionsDRR$DR_END_TRUE, ConsistentInsertionsDRR$DR_START_TRUE+(RPrimerPlotPoints$start-2))
-RPrimerPlotPoints$mh_length = 1+(RPrimerPlotPoints$mh_end-RPrimerPlotPoints$mh_start)
-RPrimerPlotPoints$ins_start = ConsistentInsertionsDRR$DR_START_TRUE+(RPrimerPlotPoints$start-1)
-RPrimerPlotPoints$ins_end = (ConsistentInsertionsDRR$DR_END_TRUE)-(nchar(as.character(ConsistentInsertionsDRR$RM))-RPrimerPlotPoints$end)
-RPrimerPlotPoints$ins_length = 1+(RPrimerPlotPoints$ins_end-RPrimerPlotPoints$ins_start)
-RPrimerPlotPoints$p2_start = ifelse(RPrimerPlotPoints$is_trans=="trans",
-                                    RPrimerPlotPoints$p1_start, ConsistentInsertionsDRR$RIGHT_DEL+1)
-RPrimerPlotPoints$p2_end = ifelse(RPrimerPlotPoints$is_trans=="trans",
-                                  RPrimerPlotPoints$p1_end, (ConsistentInsertionsDRR$RIGHT_DEL+1)+(RPrimerPlotPoints$p1_length-1))
-RPrimerPlotPoints$p2_length = 1+(RPrimerPlotPoints$p2_end-RPrimerPlotPoints$p2_start)
-ConsistentInsertionsDRR = merge(ConsistentInsertionsDRR, RPrimerPlotPoints, by="motif_ID")
-ConsistentInsertionsDRR$p_ID = paste(ConsistentInsertionsDRR$p1_start, ConsistentInsertionsDRR$p1_end, ConsistentInsertionsDRR$p2_start, ConsistentInsertionsDRR$p2_end, sep="-")
-DRRagg = aggregate(READS~p_ID, data=ConsistentInsertionsDRR, sum)
-DRRtable = as.data.frame(table(ConsistentInsertionsDRR$p_ID))
-DRRagg = merge(DRRagg, DRRtable, by.x="p_ID", by.y="Var1")
-
-ConsistentInsertionsDRR = merge(DRRagg, ConsistentInsertionsDRR, by="p_ID")
-ConsistentInsertionsDRRsimplifed = ConsistentInsertionsDRR[!duplicated(ConsistentInsertionsDRR$p_ID),]
-ConsistentInsertionsDRRsimplifed$p2_start2 = ConsistentInsertionsDRRsimplifed$p2_start-0.5
-ConsistentInsertionsDRRsimplifed$p2_end2 = ConsistentInsertionsDRRsimplifed$p2_end+0.5
-ConsistentInsertionsDRRsimplifed = ConsistentInsertionsDRRsimplifed[, -c(5:27), drop=FALSE]
-colnames(ConsistentInsertionsDRRsimplifed)[2] = "READS"
+  colnames(RPrimerPlotPoints)[1] = "motif_ID"
+  RPrimerPlotPoints = RPrimerPlotPoints[!duplicated(RPrimerPlotPoints$motif_ID),] #Removes duplicate repeat motif IDs
+  #This shouldn't remove anything because they were removed above, but just making sure so nothing is double counted    #
+  
+  RPrimerPlotPoints$is_trans = ifelse(ConsistentInsertionsDRR$DR_START_TRUE<BreakPointFromLeft,
+                                      ifelse(ConsistentInsertionsDRR$DR_START_TRUE>BreakPointFromLeft, "trans", "no"), "no")
+  #I don't understand this ifelse statement above, its illogical and will always lead to no       #
+  
+  RPrimerPlotPoints$p1_start = ifelse(RPrimerPlotPoints$is_trans=="trans",
+                                      ConsistentInsertionsDRR$DR_START_TRUE, (ConsistentInsertionsDRR$DR_END_TRUE+1)-
+                                        (nchar(as.character(ConsistentInsertionsDRR$RM))-RPrimerPlotPoints$end))
+  RPrimerPlotPoints$p1_end = ifelse(RPrimerPlotPoints$is_trans=="trans",
+                                    ConsistentInsertionsDRR$DR_START_TRUE+(RPrimerPlotPoints$start-2),
+                                    ConsistentInsertionsDRR$DR_END_TRUE)
+  RPrimerPlotPoints$p1_length = 1+(RPrimerPlotPoints$p1_end - RPrimerPlotPoints$p1_start)
+  RPrimerPlotPoints$mh_start = ifelse(RPrimerPlotPoints$is_trans=="trans", 
+                                      (ConsistentInsertionsDRR$DR_END_TRUE+1)-(nchar(as.character(ConsistentInsertionsDRR$RM))-RPrimerPlotPoints$end), 
+                                      ConsistentInsertionsDRR$DR_START_TRUE)
+  RPrimerPlotPoints$mh_end = ifelse(RPrimerPlotPoints$is_trans=="trans",
+                                    ConsistentInsertionsDRR$DR_END_TRUE, ConsistentInsertionsDRR$DR_START_TRUE+(RPrimerPlotPoints$start-2))
+  RPrimerPlotPoints$mh_length = 1+(RPrimerPlotPoints$mh_end-RPrimerPlotPoints$mh_start)
+  RPrimerPlotPoints$ins_start = ConsistentInsertionsDRR$DR_START_TRUE+(RPrimerPlotPoints$start-1)
+  RPrimerPlotPoints$ins_end = (ConsistentInsertionsDRR$DR_END_TRUE)-(nchar(as.character(ConsistentInsertionsDRR$RM))-RPrimerPlotPoints$end)
+  RPrimerPlotPoints$ins_length = 1+(RPrimerPlotPoints$ins_end-RPrimerPlotPoints$ins_start)
+  RPrimerPlotPoints$p2_start = ifelse(RPrimerPlotPoints$is_trans=="trans",
+                                      RPrimerPlotPoints$p1_start, ConsistentInsertionsDRR$RIGHT_DEL+1)
+  RPrimerPlotPoints$p2_end = ifelse(RPrimerPlotPoints$is_trans=="trans",
+                                    RPrimerPlotPoints$p1_end, (ConsistentInsertionsDRR$RIGHT_DEL+1)+(RPrimerPlotPoints$p1_length-1))
+  RPrimerPlotPoints$p2_length = 1+(RPrimerPlotPoints$p2_end-RPrimerPlotPoints$p2_start)
+  ConsistentInsertionsDRR = merge(ConsistentInsertionsDRR, RPrimerPlotPoints, by="motif_ID")
+  ConsistentInsertionsDRR$p_ID = paste(ConsistentInsertionsDRR$p1_start, ConsistentInsertionsDRR$p1_end, ConsistentInsertionsDRR$p2_start, ConsistentInsertionsDRR$p2_end, sep="-")
+  DRRagg = aggregate(READS~p_ID, data=ConsistentInsertionsDRR, sum)
+  DRRtable = as.data.frame(table(ConsistentInsertionsDRR$p_ID))
+  DRRagg = merge(DRRagg, DRRtable, by.x="p_ID", by.y="Var1")
+  
+  ConsistentInsertionsDRR = merge(DRRagg, ConsistentInsertionsDRR, by="p_ID")
+  ConsistentInsertionsDRRsimplifed = ConsistentInsertionsDRR[!duplicated(ConsistentInsertionsDRR$p_ID),]
+  ConsistentInsertionsDRRsimplifed$p2_start2 = ConsistentInsertionsDRRsimplifed$p2_start-0.5
+  ConsistentInsertionsDRRsimplifed$p2_end2 = ConsistentInsertionsDRRsimplifed$p2_end+0.5
+  ConsistentInsertionsDRRsimplifed = ConsistentInsertionsDRRsimplifed[, -c(5:27), drop=FALSE]
+  colnames(ConsistentInsertionsDRRsimplifed)[2] = "READS"
+  }else {
+    colnames=c('p_ID','READS','Freq.x','Freq.y','NUMBER_OF_ALIGNMENTS','MISMATCH_PERCENTAGE_TO_RECONSTRUCTED','CLASS_final',
+               'percent','percent_inaccurate','ID','DR_START','DR_END','RC_START','RC_END','consistency','left_del','right_del','del_seq','insertion','plasmid',
+               'DRmotif_length','RCmotif_length','Loop.out','Snap.back','RIGHT_DEL','SIDE','RM','insertion_length','DR_START_TRUE','DR_END_TRUE','start.x','end.x',
+               'is_trans.x','p1_start.x','p1_end.x','p1_length.x','mh_start.x','mh_end.x','mh_length.x','ins_start.x','ins_end.x','ins_length.x','p2_start.x','p2_end.x',
+               'p2_length.x','start.y','end.y','is_trans.y','p1_start.y',
+               'p1_end.y','p1_length.y','mh_start.y','mh_end.y','mh_length.y','ins_start.y','ins_end.y','ins_length.y','p2_start.y','p2_end.y','p2_length.y')
+    ConsistentInsertionsDRRsimplifed = data.frame(matrix(nrow=0, ncol=length(colnames)))
+    colnames(ConsistentInsertionsDRRsimplifed) = colnames
+  }                         
               #Deletes some unnecessary columns to make the data frame easier to look through. Changes READS.x to READS   #
               #There's more that can be removed still but leaving it at this point for now.                                #
 
 #----------------Direct Repeat - Left Side-----------------------------------------
-for (i in 1:nrow(ConsistentInsertionsDRL)){
-  Ins <- as.character(ConsistentInsertionsDRL[i,35])    # create insertion sequence region to search
-  #insertion
-  dr1 <- as.data.frame(str_locate_all(ConsistentInsertionsDRL[i,43], Ins)) # search deletion sequence for string #43 = RM
-  if (nrow(dr1)!=1){
-    dr2 <- dr1
-    while (nrow(dr2)!=1){
-      for (j in 1:nrow(dr1)){
-        if (dr1[j,2]==nchar(allowNA = TRUE,as.character(ConsistentInsertionsDRL[i,43]))){
-          break
-        }else{
-          prim <- paste(substring(ConsistentInsertionsDRL[i,43],1,dr1[j,1]-1), substring(ConsistentInsertionsDRL[i,43],dr1[j,2]+1,nchar(as.character(ConsistentInsertionsDRL[i,43]))),sep="")
-          s <- dr1[j,1]-1
-          der <- substring(as.character(ConsistentInsertionsDRL[i,34]), first=ConsistentInsertionsDRL[i,32]-(s-1), last=ConsistentInsertionsDRL[i,33]+(nchar(as.character(ConsistentInsertionsDRL[i,43]))-dr1[j,2]))
-                                                                #del_seq                              left_del                               right_del
-          dr3 <- as.data.frame(str_locate_all(der, prim))
-          if (nrow(dr3)==0){ # if there is a match, then make dr3=dr2, which will make the nrow(dr2)=1, breaking the while loop
-            next
-          } else{
-            dr2 <- dr3
-            k <- j
+if (nrow(ConsistentInsertionsDRL) > 0){
+  for (i in 1:nrow(ConsistentInsertionsDRL)){
+    Ins <- as.character(ConsistentInsertionsDRL[i,35])    # create insertion sequence region to search
+    #insertion
+    dr1 <- as.data.frame(str_locate_all(ConsistentInsertionsDRL[i,43], Ins)) # search deletion sequence for string #43 = RM
+    if (nrow(dr1)!=1){
+      dr2 <- dr1
+      while (nrow(dr2)!=1){
+        for (j in 1:nrow(dr1)){
+          if (dr1[j,2]==nchar(allowNA = TRUE,as.character(ConsistentInsertionsDRL[i,43]))){
+            break
+          }else{
+            prim <- paste(substring(ConsistentInsertionsDRL[i,43],1,dr1[j,1]-1), substring(ConsistentInsertionsDRL[i,43],dr1[j,2]+1,nchar(as.character(ConsistentInsertionsDRL[i,43]))),sep="")
+            s <- dr1[j,1]-1
+            der <- substring(as.character(ConsistentInsertionsDRL[i,34]), first=ConsistentInsertionsDRL[i,32]-(s-1), last=ConsistentInsertionsDRL[i,33]+(nchar(as.character(ConsistentInsertionsDRL[i,43]))-dr1[j,2]))
+            #del_seq                              left_del                               right_del
+            dr3 <- as.data.frame(str_locate_all(der, prim))
+            if (nrow(dr3)==0){ # if there is a match, then make dr3=dr2, which will make the nrow(dr2)=1, breaking the while loop
+              next
+            } else{
+              dr2 <- dr3
+              k <- j
+            }
           }
         }
+        break
       }
-      break
+      LPrimerPlotPoints1 <- cbind(ConsistentInsertionsDRL[i,47], dr1[k,]) # once we know which one we want, we put that dr1 row
+      #motif_ID
+      LPrimerPlotPoints <- rbind(LPrimerPlotPoints,LPrimerPlotPoints1)
+    } else {
+      LPrimerPlotPoints1 <- cbind(ConsistentInsertionsDRL[i,47], dr1)
+      #motif_ID
+      LPrimerPlotPoints <- rbind(LPrimerPlotPoints,LPrimerPlotPoints1)
     }
-    LPrimerPlotPoints1 <- cbind(ConsistentInsertionsDRL[i,47], dr1[k,]) # once we know which one we want, we put that dr1 row
-                                                      #motif_ID
-    LPrimerPlotPoints <- rbind(LPrimerPlotPoints,LPrimerPlotPoints1)
-  } else {
-    LPrimerPlotPoints1 <- cbind(ConsistentInsertionsDRL[i,47], dr1)
-                                                      #motif_ID
-    LPrimerPlotPoints <- rbind(LPrimerPlotPoints,LPrimerPlotPoints1)
   }
+  
+  colnames(LPrimerPlotPoints)[1] = "motif_ID"
+  LPrimerPlotPoints$is_trans = ifelse(ConsistentInsertionsDRL$DR_END_TRUE<BreakPointFromLeft,
+                                      ifelse(ConsistentInsertionsDRL$DR_END_TRUE>BreakPointFromLeft, "trans", "no"), "no")
+  #I don't understand this ifelse statement above, its illogical and will always lead to no       #
+  
+  LPrimerPlotPoints$p1_start = ifelse(LPrimerPlotPoints$is_trans=="trans",
+                                      (ConsistentInsertionsDRL$DR_END_TRUE+1)-
+                                        (nchar(as.character(ConsistentInsertionsDRR$RM))-LPrimerPlotPoints$end), ConsistentInsertionsDRL$DR_START_TRUE)
+  LPrimerPlotPoints$p1_end = ifelse(LPrimerPlotPoints$is_trans=="trans",
+                                    ConsistentInsertionsDRL$DR_END_TRUE, ConsistentInsertionsDRL$DR_START_TRUE+(LPrimerPlotPoints$start-2))
+  LPrimerPlotPoints$p1_length = 1+(LPrimerPlotPoints$p1_end - LPrimerPlotPoints$p1_start)
+  LPrimerPlotPoints$mh_start = ifelse(LPrimerPlotPoints$is_trans=="trans", 
+                                      ConsistentInsertionsDRL$DR_START_TRUE, 
+                                      (ConsistentInsertionsDRL$DR_END_TRUE+1)-(nchar(as.character(ConsistentInsertionsDRL$RM))-LPrimerPlotPoints[,3]))
+  LPrimerPlotPoints$mh_end = ifelse(LPrimerPlotPoints$is_trans=="trans",
+                                    ConsistentInsertionsDRL$DR_START_TRUE+(LPrimerPlotPoints$start-2),
+                                    ConsistentInsertionsDRL$DR_END_TRUE)
+  LPrimerPlotPoints$mh_length = 1+(LPrimerPlotPoints$mh_end-LPrimerPlotPoints$mh_start)
+  LPrimerPlotPoints$ins_start = ConsistentInsertionsDRL$DR_START_TRUE+(LPrimerPlotPoints$start-1)
+  LPrimerPlotPoints$ins_end = (ConsistentInsertionsDRL$DR_END_TRUE)-(nchar(as.character(ConsistentInsertionsDRL$RM))-LPrimerPlotPoints$end)
+  LPrimerPlotPoints$ins_length = 1+(LPrimerPlotPoints$ins_end-LPrimerPlotPoints$ins_start)
+  LPrimerPlotPoints$p2_start = ifelse(LPrimerPlotPoints$is_trans=="trans",
+                                      LPrimerPlotPoints$p1_start, (ConsistentInsertionsDRL$left_del)-(LPrimerPlotPoints$p1_length-1))
+  LPrimerPlotPoints$p2_end = ifelse(LPrimerPlotPoints$is_trans=="trans",
+                                    LPrimerPlotPoints$p1_end, ConsistentInsertionsDRL$left_del)
+  LPrimerPlotPoints$p2_length = 1+(LPrimerPlotPoints$p2_end-LPrimerPlotPoints$p2_start)
+  ConsistentInsertionsDRL = merge(ConsistentInsertionsDRL, LPrimerPlotPoints, by="motif_ID")
+  ConsistentInsertionsDRL$p_ID = paste(ConsistentInsertionsDRL$p1_start, ConsistentInsertionsDRL$p1_end, ConsistentInsertionsDRL$p2_start, ConsistentInsertionsDRL$p2_end, sep="-")
+  DRLagg = aggregate(READS~p_ID, data=ConsistentInsertionsDRL, sum)
+  DRLtable = as.data.frame(table(ConsistentInsertionsDRL$p_ID))
+  DRLagg = merge(DRLagg, DRLtable, by.x="p_ID", by.y="Var1")
+  ConsistentInsertionsDRL = merge(DRLagg, ConsistentInsertionsDRL, by="p_ID")
+  ConsistentInsertionsDRLsimplified = ConsistentInsertionsDRL[!duplicated(ConsistentInsertionsDRL$p_ID),] #removes duplicated p2_IDs for use in repeat motif plots
+  ConsistentInsertionsDRLsimplified$p2_start2 = ConsistentInsertionsDRLsimplified$p2_start-0.5
+  ConsistentInsertionsDRLsimplified$p2_end2 = ConsistentInsertionsDRLsimplified$p2_end+0.5
+  ConsistentInsertionsDRLsimplified = ConsistentInsertionsDRLsimplified[, -c(5:27), drop=FALSE]
+  colnames(ConsistentInsertionsDRLsimplified)[2] = "READS"
+}else{
+  colnames=colnames(ConsistentInsertionsDRRsimplifed)
+  ConsistentInsertionsDRLsimplifed = data.frames(matrix(nrow=0, ncol=length(colnames)))
+  colnames(ConsistentInsertionsDRLsimplifed) = colnames
 }
-
-colnames(LPrimerPlotPoints)[1] = "motif_ID"
-LPrimerPlotPoints$is_trans = ifelse(ConsistentInsertionsDRL$DR_END_TRUE<BreakPointFromLeft,
-                                    ifelse(ConsistentInsertionsDRL$DR_END_TRUE>BreakPointFromLeft, "trans", "no"), "no")
-                              #I don't understand this ifelse statement above, its illogical and will always lead to no       #
-
-LPrimerPlotPoints$p1_start = ifelse(LPrimerPlotPoints$is_trans=="trans",
-                                    (ConsistentInsertionsDRL$DR_END_TRUE+1)-
-                                      (nchar(as.character(ConsistentInsertionsDRR$RM))-LPrimerPlotPoints$end), ConsistentInsertionsDRL$DR_START_TRUE)
-LPrimerPlotPoints$p1_end = ifelse(LPrimerPlotPoints$is_trans=="trans",
-                                  ConsistentInsertionsDRL$DR_END_TRUE, ConsistentInsertionsDRL$DR_START_TRUE+(LPrimerPlotPoints$start-2))
-LPrimerPlotPoints$p1_length = 1+(LPrimerPlotPoints$p1_end - LPrimerPlotPoints$p1_start)
-LPrimerPlotPoints$mh_start = ifelse(LPrimerPlotPoints$is_trans=="trans", 
-                                    ConsistentInsertionsDRL$DR_START_TRUE, 
-                                    (ConsistentInsertionsDRL$DR_END_TRUE+1)-(nchar(as.character(ConsistentInsertionsDRL$RM))-LPrimerPlotPoints[,3]))
-LPrimerPlotPoints$mh_end = ifelse(LPrimerPlotPoints$is_trans=="trans",
-                                  ConsistentInsertionsDRL$DR_START_TRUE+(LPrimerPlotPoints$start-2),
-                                  ConsistentInsertionsDRL$DR_END_TRUE)
-LPrimerPlotPoints$mh_length = 1+(LPrimerPlotPoints$mh_end-LPrimerPlotPoints$mh_start)
-LPrimerPlotPoints$ins_start = ConsistentInsertionsDRL$DR_START_TRUE+(LPrimerPlotPoints$start-1)
-LPrimerPlotPoints$ins_end = (ConsistentInsertionsDRL$DR_END_TRUE)-(nchar(as.character(ConsistentInsertionsDRL$RM))-LPrimerPlotPoints$end)
-LPrimerPlotPoints$ins_length = 1+(LPrimerPlotPoints$ins_end-LPrimerPlotPoints$ins_start)
-LPrimerPlotPoints$p2_start = ifelse(LPrimerPlotPoints$is_trans=="trans",
-                                    LPrimerPlotPoints$p1_start, (ConsistentInsertionsDRL$left_del)-(LPrimerPlotPoints$p1_length-1))
-LPrimerPlotPoints$p2_end = ifelse(LPrimerPlotPoints$is_trans=="trans",
-                                  LPrimerPlotPoints$p1_end, ConsistentInsertionsDRL$left_del)
-LPrimerPlotPoints$p2_length = 1+(LPrimerPlotPoints$p2_end-LPrimerPlotPoints$p2_start)
-ConsistentInsertionsDRL = merge(ConsistentInsertionsDRL, LPrimerPlotPoints, by="motif_ID")
-ConsistentInsertionsDRL$p_ID = paste(ConsistentInsertionsDRL$p1_start, ConsistentInsertionsDRL$p1_end, ConsistentInsertionsDRL$p2_start, ConsistentInsertionsDRL$p2_end, sep="-")
-DRLagg = aggregate(READS~p_ID, data=ConsistentInsertionsDRL, sum)
-DRLtable = as.data.frame(table(ConsistentInsertionsDRL$p_ID))
-DRLagg = merge(DRLagg, DRLtable, by.x="p_ID", by.y="Var1")
-ConsistentInsertionsDRL = merge(DRLagg, ConsistentInsertionsDRL, by="p_ID")
-ConsistentInsertionsDRLsimplified = ConsistentInsertionsDRL[!duplicated(ConsistentInsertionsDRL$p_ID),] #removes duplicated p2_IDs for use in repeat motif plots
-ConsistentInsertionsDRLsimplified$p2_start2 = ConsistentInsertionsDRLsimplified$p2_start-0.5
-ConsistentInsertionsDRLsimplified$p2_end2 = ConsistentInsertionsDRLsimplified$p2_end+0.5
-ConsistentInsertionsDRLsimplified = ConsistentInsertionsDRLsimplified[, -c(5:27), drop=FALSE]
-colnames(ConsistentInsertionsDRLsimplified)[2] = "READS"
               #Deletes some unnecessary columns to make the data frame easier to look through. Changes READS.x to READS   #
               #Theres more that can be removed still but leaving it at this point for now.                                #
 
@@ -384,162 +401,189 @@ RCRPrimerPlotPoints = c() #Creates new data frome "RCRPrimerPlotPoints" for the 
 RCLPrimerPlotPoints = c() #Creates new data frome "RCLPrimerPlotPoints" for the for loop below
 
 #----------------Reverse Complement - Left Side-----------------------------------------
-for (i in 1:nrow(ConsistentInsertionsRCL)){
-  ins <- as.character(ConsistentInsertionsRCL[i,35])    # create insertion sequence region to search
-  #insertion
-  dnains <- lapply(ins, DNAString)
-  revins <- lapply(dnains, reverseComplement)
-  ins <- lapply(revins, toString)
-  rm <- toupper(ConsistentInsertionsRCL[i,43])
-  #RM
-  dr1 <- as.data.frame(str_locate_all(rm, as.character(ins))) # search deletion sequence for string
-  if (nrow(dr1)!=1){
-    dr2 <- dr1
-    while (nrow(dr2)!=1){
-      for (j in 1:nrow(dr1)){
-        if (dr1[j,2]==nchar(as.character(ConsistentInsertionsRCL[i,43]))){ #RM
-          break
-        }else{
-          prim <- paste(substring(ConsistentInsertionsRCL[i,43],1,dr1[j,1]-1), substring(ConsistentInsertionsRCL[i,43],dr1[j,2]+1,nchar(as.character(ConsistentInsertionsRCL[i,43]))),sep="")
-          dnains2 <- lapply(prim, DNAString)
-          revins2 <- lapply(dnains2, reverseComplement)
-          prim <- lapply(revins2, toString)
-          s <- dr1[j,1]-1
-          der <- substring(as.character(ConsistentInsertionsRCL[i,34]), first=ConsistentInsertionsRCL[i,32]-(s-1), last=ConsistentInsertionsRCL[i,33]+(nchar(as.character(ConsistentInsertionsRCL[i,43]))-dr1[j,2]))
-                                                                 #del_seq                              #left_del                          #right_del
-          dr3 <- as.data.frame(str_locate_all(der, as.character(prim)))
-          if (nrow(dr3)==0){ # if there is a match, then make dr3=dr2, which will make the nrow(dr2)=1, breaking the while loop
-            next
-          } else{
-            dr2 <- dr3
+if (nrow(ConsistentInsertionsRCL) > 0){
+  for (i in 1:nrow(ConsistentInsertionsRCL)){
+    ins <- as.character(ConsistentInsertionsRCL[i,35])    # create insertion sequence region to search
+    #insertion
+    dnains <- lapply(ins, DNAString)
+    revins <- lapply(dnains, reverseComplement)
+    ins <- lapply(revins, toString)
+    rm <- toupper(ConsistentInsertionsRCL[i,43])
+    #RM
+    dr1 <- as.data.frame(str_locate_all(rm, as.character(ins))) # search deletion sequence for string
+    if (nrow(dr1)!=1){
+      dr2 <- dr1
+      while (nrow(dr2)!=1){
+        for (j in 1:nrow(dr1)){
+          if (dr1[j,2]==nchar(as.character(ConsistentInsertionsRCL[i,43]))){ #RM
+            break
+          }else{
+            prim <- paste(substring(ConsistentInsertionsRCL[i,43],1,dr1[j,1]-1), substring(ConsistentInsertionsRCL[i,43],dr1[j,2]+1,nchar(as.character(ConsistentInsertionsRCL[i,43]))),sep="")
+            dnains2 <- lapply(prim, DNAString)
+            revins2 <- lapply(dnains2, reverseComplement)
+            prim <- lapply(revins2, toString)
+            s <- dr1[j,1]-1
+            der <- substring(as.character(ConsistentInsertionsRCL[i,34]), first=ConsistentInsertionsRCL[i,32]-(s-1), last=ConsistentInsertionsRCL[i,33]+(nchar(as.character(ConsistentInsertionsRCL[i,43]))-dr1[j,2]))
+            #del_seq                              #left_del                          #right_del
+            dr3 <- as.data.frame(str_locate_all(der, as.character(prim)))
+            if (nrow(dr3)==0){ # if there is a match, then make dr3=dr2, which will make the nrow(dr2)=1, breaking the while loop
+              next
+            } else{
+              dr2 <- dr3
+            }
           }
         }
+        break
       }
-      break
+      RCLPrimerPlotPoints1 <- cbind(ConsistentInsertionsRCL[i,47], dr1[j,]) # once we know which one we want, we put that dr1 row
+      #motif_ID
+      RCLPrimerPlotPoints <- rbind(RCLPrimerPlotPoints,RCLPrimerPlotPoints1)
+    } else {
+      RCLPrimerPlotPoints1 <- cbind(ConsistentInsertionsRCL[i,47], dr1)
+      #motif_ID
+      RCLPrimerPlotPoints <- rbind(RCLPrimerPlotPoints,RCLPrimerPlotPoints1)
     }
-    RCLPrimerPlotPoints1 <- cbind(ConsistentInsertionsRCL[i,47], dr1[j,]) # once we know which one we want, we put that dr1 row
-                                                          #motif_ID
-    RCLPrimerPlotPoints <- rbind(RCLPrimerPlotPoints,RCLPrimerPlotPoints1)
-  } else {
-    RCLPrimerPlotPoints1 <- cbind(ConsistentInsertionsRCL[i,47], dr1)
-                                                          #motif_ID
-    RCLPrimerPlotPoints <- rbind(RCLPrimerPlotPoints,RCLPrimerPlotPoints1)
   }
+  
+  
+  colnames(RCLPrimerPlotPoints)[1] = "motif_ID"
+  RCLPrimerPlotPoints$is_trans = "no"
+  RCLPrimerPlotPoints$p1_start = (ConsistentInsertionsRCL$RC_END_TRUE)-(nchar(as.character(ConsistentInsertionsRCL$RM))-RCLPrimerPlotPoints$end-1)
+  RCLPrimerPlotPoints$p1_end = ConsistentInsertionsRCL$RC_END_TRUE
+  RCLPrimerPlotPoints$p1_length = 1+(RCLPrimerPlotPoints$p1_end - RCLPrimerPlotPoints$p1_start)
+  RCLPrimerPlotPoints$mh_start = ConsistentInsertionsRCL$RC_START_TRUE
+  RCLPrimerPlotPoints$mh_end = ConsistentInsertionsRCL$RC_START_TRUE+(RCLPrimerPlotPoints$start-2)
+  RCLPrimerPlotPoints$mh_length = 1+(RCLPrimerPlotPoints$mh_end - RCLPrimerPlotPoints$mh_start)
+  RCLPrimerPlotPoints$ins_start = ConsistentInsertionsRCL$RC_START_TRUE+(RCLPrimerPlotPoints$start-1)
+  RCLPrimerPlotPoints$ins_end = ConsistentInsertionsRCL$RC_START_TRUE+(RCLPrimerPlotPoints$end-1)
+  RCLPrimerPlotPoints$ins_length = 1+RCLPrimerPlotPoints$ins_end-RCLPrimerPlotPoints$ins_start
+  RCLPrimerPlotPoints$p2_start = ConsistentInsertionsRCL$left_del - (RCLPrimerPlotPoints$p1_length-1)
+  RCLPrimerPlotPoints$p2_end = ConsistentInsertionsRCL$left_del
+  RCLPrimerPlotPoints$p2_length = 1+RCLPrimerPlotPoints$p2_end-RCLPrimerPlotPoints$p2_start
+  ConsistentInsertionsRCL = merge(ConsistentInsertionsRCL,RCLPrimerPlotPoints, by="motif_ID")
+  ConsistentInsertionsRCL$p_ID = paste(ConsistentInsertionsRCL$p1_start, ConsistentInsertionsRCL$p1_end,ConsistentInsertionsRCL$p2_start, ConsistentInsertionsRCL$p2_end, sep="-")
+  RCLagg = aggregate(READS~p_ID, data=ConsistentInsertionsRCL, sum)
+  RCLtable = as.data.frame(table(ConsistentInsertionsRCL$p_ID))
+  RCLagg = merge(RCLagg, RCLtable, by.x="p_ID", by.y="Var1")
+  ConsistentInsertionsRCL = merge(RCLagg, ConsistentInsertionsRCL, by="p_ID")
+  ConsistentInsertionsRCL = subset(ConsistentInsertionsRCL, ! p1_start>p2_start & p1_start<p2_end)
+  ConsistentInsertionsRCLsimplified = ConsistentInsertionsRCL[!duplicated(ConsistentInsertionsRCL$p_ID),]
+  ConsistentInsertionsRCLsimplified$p2_start2 = ConsistentInsertionsRCLsimplified$p2_start-0.5
+  ConsistentInsertionsRCLsimplified$p2_end2 = ConsistentInsertionsRCLsimplified$p2_end+0.5
+  ConsistentInsertionsRCLsimplified = ConsistentInsertionsRCLsimplified[, -c(5:27), drop=FALSE]
+  colnames(ConsistentInsertionsRCLsimplified)[2] = "READS"
+  #Deletes some unnecessary columns to make the data frame easier to look through. Changes READS.x to READS   #
+  #Theres more that can be removed still but leaving it at this point for now.                                #
+}else{
+  colnames=c('p_ID','READS','Freq','motif_ID','percent','percent_inaccurate','ID','DR_START','DR_END','RC_START','RC_END','consistency','left_del','right_del',
+             'del_seq','insertion','plasmid','DRmotif_length','RCmotif_length','Loop.out','Snap.back','RIGHT_DEL','SIDE','RM','insertion_length','RC_START_TRUE','RC_END_TRUE',
+             'start','end','is_trans','p1_start','p1_end','p1_length','mh_start','mh_end','mh_length','ins_start','ins_end',
+             'ins_length','p2_start','p2_end','p2_length','p2_start2','p2_end2')
+  ConsistentInsertionsRCLsimplified=data.frame(matrix(nrow=0, ncol=length(colnames)))
+  colnames(ConsistentInsertionsRCLsimplified) = colnames
 }
-colnames(RCLPrimerPlotPoints)[1] = "motif_ID"
-RCLPrimerPlotPoints$is_trans = "no"
-RCLPrimerPlotPoints$p1_start = (ConsistentInsertionsRCL$RC_END_TRUE)-(nchar(as.character(ConsistentInsertionsRCL$RM))-RCLPrimerPlotPoints$end-1)
-RCLPrimerPlotPoints$p1_end = ConsistentInsertionsRCL$RC_END_TRUE
-RCLPrimerPlotPoints$p1_length = 1+(RCLPrimerPlotPoints$p1_end - RCLPrimerPlotPoints$p1_start)
-RCLPrimerPlotPoints$mh_start = ConsistentInsertionsRCL$RC_START_TRUE
-RCLPrimerPlotPoints$mh_end = ConsistentInsertionsRCL$RC_START_TRUE+(RCLPrimerPlotPoints$start-2)
-RCLPrimerPlotPoints$mh_length = 1+(RCLPrimerPlotPoints$mh_end - RCLPrimerPlotPoints$mh_start)
-RCLPrimerPlotPoints$ins_start = ConsistentInsertionsRCL$RC_START_TRUE+(RCLPrimerPlotPoints$start-1)
-RCLPrimerPlotPoints$ins_end = ConsistentInsertionsRCL$RC_START_TRUE+(RCLPrimerPlotPoints$end-1)
-RCLPrimerPlotPoints$ins_length = 1+RCLPrimerPlotPoints$ins_end-RCLPrimerPlotPoints$ins_start
-RCLPrimerPlotPoints$p2_start = ConsistentInsertionsRCL$left_del - (RCLPrimerPlotPoints$p1_length-1)
-RCLPrimerPlotPoints$p2_end = ConsistentInsertionsRCL$left_del
-RCLPrimerPlotPoints$p2_length = 1+RCLPrimerPlotPoints$p2_end-RCLPrimerPlotPoints$p2_start
-ConsistentInsertionsRCL = merge(ConsistentInsertionsRCL,RCLPrimerPlotPoints, by="motif_ID")
-ConsistentInsertionsRCL$p_ID = paste(ConsistentInsertionsRCL$p1_start, ConsistentInsertionsRCL$p1_end,ConsistentInsertionsRCL$p2_start, ConsistentInsertionsRCL$p2_end, sep="-")
-RCLagg = aggregate(READS~p_ID, data=ConsistentInsertionsRCL, sum)
-RCLtable = as.data.frame(table(ConsistentInsertionsRCL$p_ID))
-RCLagg = merge(RCLagg, RCLtable, by.x="p_ID", by.y="Var1")
-ConsistentInsertionsRCL = merge(RCLagg, ConsistentInsertionsRCL, by="p_ID")
-ConsistentInsertionsRCL = subset(ConsistentInsertionsRCL, ! p1_start>p2_start & p1_start<p2_end)
-ConsistentInsertionsRCLsimplified = ConsistentInsertionsRCL[!duplicated(ConsistentInsertionsRCL$p_ID),]
-ConsistentInsertionsRCLsimplified$p2_start2 = ConsistentInsertionsRCLsimplified$p2_start-0.5
-ConsistentInsertionsRCLsimplified$p2_end2 = ConsistentInsertionsRCLsimplified$p2_end+0.5
-ConsistentInsertionsRCLsimplified = ConsistentInsertionsRCLsimplified[, -c(5:27), drop=FALSE]
-colnames(ConsistentInsertionsRCLsimplified)[2] = "READS"
-              #Deletes some unnecessary columns to make the data frame easier to look through. Changes READS.x to READS   #
-              #Theres more that can be removed still but leaving it at this point for now.                                #
+
 
 #----------------Reverse Complement Plot - Right Side-----------------------------------------
-for (i in 1:nrow(ConsistentInsertionsRCR)){
-  ins <- as.character(ConsistentInsertionsRCR[i,35])    # create insertion sequence region to search
-  #insertion
-  dnains <- lapply(ins, DNAString)
-  revins <- lapply(dnains, reverseComplement)
-  ins <- lapply(revins, toString)
-  rm <- toupper(ConsistentInsertionsRCR[i,43]) #RM
-  dr1 <- as.data.frame(str_locate_all(rm, as.character(ins))) # search deletion sequence for string
-  if (nrow(dr1)!=1){
-    dr2 <- dr1
-    while (nrow(dr2)!=1){
-      for (j in 1:nrow(dr1)){
-        if (dr1[j,2]==nchar(as.character(ConsistentInsertionsRCR[i,43]))){ #RM
-          break
-        }else{
-          prim <- paste(substring(ConsistentInsertionsRCR[i,43],1,dr1[j,1]-1), substring(ConsistentInsertionsRCR[i,43],dr1[j,2]+1,nchar(as.character(ConsistentInsertionsRCR[i,43]))),sep="")
-          dnains2 <- lapply(prim, DNAString)
-          revins2 <- lapply(dnains2, reverseComplement)
-          prim <- lapply(revins2, toString)
-          s <- dr1[j,1]-1
-          der <- substring(as.character(ConsistentInsertionsRCR[i,34]), first=ConsistentInsertionsRCR[i,32]-(s-1), last=ConsistentInsertionsRCR[i,33]+(nchar(as.character(ConsistentInsertionsRCR[i,43]))-dr1[j,2]))
-                                                               #del_seq                              #left_del                               #right_del
-          dr3 <- as.data.frame(str_locate_all(der, as.character(prim)))
-          if (nrow(dr3)==0){ # if there is a match, then make dr3=dr2, which will make the nrow(dr2)=1, breaking the while loop
-            next
-          } else{
-            dr2 <- dr3
-            k <- j
+if (nrow(ConsistentInsertionsRCR) > 0){ 
+  for (i in 1:nrow(ConsistentInsertionsRCR)){
+    ins <- as.character(ConsistentInsertionsRCR[i,35])    # create insertion sequence region to search
+    #insertion
+    dnains <- lapply(ins, DNAString)
+    revins <- lapply(dnains, reverseComplement)
+    ins <- lapply(revins, toString)
+    rm <- toupper(ConsistentInsertionsRCR[i,43]) #RM
+    dr1 <- as.data.frame(str_locate_all(rm, as.character(ins))) # search deletion sequence for string
+    if (nrow(dr1)!=1){
+      dr2 <- dr1
+      while (nrow(dr2)!=1){
+        for (j in 1:nrow(dr1)){
+          if (dr1[j,2]==nchar(as.character(ConsistentInsertionsRCR[i,43]))){ #RM
+            break
+          }else{
+            prim <- paste(substring(ConsistentInsertionsRCR[i,43],1,dr1[j,1]-1), substring(ConsistentInsertionsRCR[i,43],dr1[j,2]+1,nchar(as.character(ConsistentInsertionsRCR[i,43]))),sep="")
+            dnains2 <- lapply(prim, DNAString)
+            revins2 <- lapply(dnains2, reverseComplement)
+            prim <- lapply(revins2, toString)
+            s <- dr1[j,1]-1
+            der <- substring(as.character(ConsistentInsertionsRCR[i,34]), first=ConsistentInsertionsRCR[i,32]-(s-1), last=ConsistentInsertionsRCR[i,33]+(nchar(as.character(ConsistentInsertionsRCR[i,43]))-dr1[j,2]))
+            #del_seq                              #left_del                               #right_del
+            dr3 <- as.data.frame(str_locate_all(der, as.character(prim)))
+            if (nrow(dr3)==0){ # if there is a match, then make dr3=dr2, which will make the nrow(dr2)=1, breaking the while loop
+              next
+            } else{
+              dr2 <- dr3
+              k <- j
+            }
           }
         }
+        break
       }
-      break
+      RCRPrimerPlotPoints1 <- cbind(ConsistentInsertionsRCR[i,47], dr1[k,]) # once we know which one we want, we put that dr1 row
+      #motif_ID
+      RCRPrimerPlotPoints <- rbind(RCRPrimerPlotPoints,RCRPrimerPlotPoints1)
+    } else {
+      RCRPrimerPlotPoints1 <- cbind(ConsistentInsertionsRCR[i,47], dr1)
+      #motif_ID
+      RCRPrimerPlotPoints <- rbind(RCRPrimerPlotPoints,RCRPrimerPlotPoints1)
     }
-    RCRPrimerPlotPoints1 <- cbind(ConsistentInsertionsRCR[i,47], dr1[k,]) # once we know which one we want, we put that dr1 row
-    #motif_ID
-    RCRPrimerPlotPoints <- rbind(RCRPrimerPlotPoints,RCRPrimerPlotPoints1)
-  } else {
-    RCRPrimerPlotPoints1 <- cbind(ConsistentInsertionsRCR[i,47], dr1)
-    #motif_ID
-    RCRPrimerPlotPoints <- rbind(RCRPrimerPlotPoints,RCRPrimerPlotPoints1)
   }
+  
+  colnames(RCRPrimerPlotPoints)[1] = "motif_ID"
+  RCRPrimerPlotPoints$is_trans = "no"
+  RCRPrimerPlotPoints$p1_start = ConsistentInsertionsRCR$RC_START_TRUE
+  RCRPrimerPlotPoints$p1_end = ConsistentInsertionsRCR$RC_START_TRUE+(RCRPrimerPlotPoints$start-2)
+  RCRPrimerPlotPoints$p1_length = 1+RCRPrimerPlotPoints$p1_end-RCRPrimerPlotPoints$p1_start
+  RCRPrimerPlotPoints$mh_start = ConsistentInsertionsRCR$RC_END_TRUE-(nchar(as.character(ConsistentInsertionsRCR$RM))-RCRPrimerPlotPoints$end-1)
+  RCRPrimerPlotPoints$mh_end = ConsistentInsertionsRCR$RC_END_TRUE
+  RCRPrimerPlotPoints$mh_length = 1+ RCRPrimerPlotPoints$mh_end-RCRPrimerPlotPoints$mh_start
+  RCRPrimerPlotPoints$ins_start = ConsistentInsertionsRCR$RC_START_TRUE+RCRPrimerPlotPoints$start-1
+  RCRPrimerPlotPoints$ins_end = ConsistentInsertionsRCR$RC_START_TRUE+(RCRPrimerPlotPoints$end-1)
+  RCRPrimerPlotPoints$ins_length = 1+RCRPrimerPlotPoints$ins_end-RCRPrimerPlotPoints$ins_start
+  RCRPrimerPlotPoints$p2_start = ConsistentInsertionsRCR$RIGHT_DEL+1
+  RCRPrimerPlotPoints$p2_end = (ConsistentInsertionsRCR$RIGHT_DEL+1)+(RCRPrimerPlotPoints$p1_length-1)
+  RCRPrimerPlotPoints$p2_length = 1+RCRPrimerPlotPoints$p2_end-RCRPrimerPlotPoints$p2_start
+  ConsistentInsertionsRCR = merge(ConsistentInsertionsRCR, RCRPrimerPlotPoints, by="motif_ID")
+  ConsistentInsertionsRCR$p_ID = paste(ConsistentInsertionsRCR$p1_start, ConsistentInsertionsRCR$p1_end ,ConsistentInsertionsRCR$p2_start, ConsistentInsertionsRCR$p2_end, sep="-")
+  RCRagg = aggregate(READS~p_ID, data=ConsistentInsertionsRCR, sum)
+  RCRtable = as.data.frame(table(ConsistentInsertionsRCR$p_ID))
+  RCRagg = merge(RCRagg, RCRtable, by.x="p_ID", by.y="Var1")
+  ConsistentInsertionsRCR = merge(RCRagg, ConsistentInsertionsRCR, by="p_ID")
+  ConsistentInsertionsRCR = subset(ConsistentInsertionsRCR, ! p2_start>p1_start & p2_start<p1_end)
+  ConsistentInsertionsRCRsimplified = ConsistentInsertionsRCR[!duplicated(ConsistentInsertionsRCR$p_ID),]
+  ConsistentInsertionsRCRsimplified$p2_start2 = ConsistentInsertionsRCRsimplified$p2_start-0.5
+  ConsistentInsertionsRCRsimplified$p2_end2 = ConsistentInsertionsRCRsimplified$p2_end+0.5
+  ConsistentInsertionsRCRsimplified = ConsistentInsertionsRCRsimplified[, -c(5:27), drop=FALSE]
+  colnames(ConsistentInsertionsRCRsimplified)[2] = "READS"
+  
+  #Deletes some unnecessary columns to make the data frame easier to look through. Changes READS.x to READS   #
+              #Theres more that can be removed still but leaving it at this point for now.                                #
+}else{
+  colnames=colnames(ConsistentInsertionsRCLsimplified)
+  ConsistentInsertionsRCRsimplified = data.frame(matrix(nrow=0, ncol=length(colnames)))
+  colnames(ConsistentInsertionsRCRsimplified) = colnames
 }
 
-colnames(RCRPrimerPlotPoints)[1] = "motif_ID"
-RCRPrimerPlotPoints$is_trans = "no"
-RCRPrimerPlotPoints$p1_start = ConsistentInsertionsRCR$RC_START_TRUE
-RCRPrimerPlotPoints$p1_end = ConsistentInsertionsRCR$RC_START_TRUE+(RCRPrimerPlotPoints$start-2)
-RCRPrimerPlotPoints$p1_length = 1+RCRPrimerPlotPoints$p1_end-RCRPrimerPlotPoints$p1_start
-RCRPrimerPlotPoints$mh_start = ConsistentInsertionsRCR$RC_END_TRUE-(nchar(as.character(ConsistentInsertionsRCR$RM))-RCRPrimerPlotPoints$end-1)
-RCRPrimerPlotPoints$mh_end = ConsistentInsertionsRCR$RC_END_TRUE
-RCRPrimerPlotPoints$mh_length = 1+ RCRPrimerPlotPoints$mh_end-RCRPrimerPlotPoints$mh_start
-RCRPrimerPlotPoints$ins_start = ConsistentInsertionsRCR$RC_START_TRUE+RCRPrimerPlotPoints$start-1
-RCRPrimerPlotPoints$ins_end = ConsistentInsertionsRCR$RC_START_TRUE+(RCRPrimerPlotPoints$end-1)
-RCRPrimerPlotPoints$ins_length = 1+RCRPrimerPlotPoints$ins_end-RCRPrimerPlotPoints$ins_start
-RCRPrimerPlotPoints$p2_start = ConsistentInsertionsRCR$RIGHT_DEL+1
-RCRPrimerPlotPoints$p2_end = (ConsistentInsertionsRCR$RIGHT_DEL+1)+(RCRPrimerPlotPoints$p1_length-1)
-RCRPrimerPlotPoints$p2_length = 1+RCRPrimerPlotPoints$p2_end-RCRPrimerPlotPoints$p2_start
-ConsistentInsertionsRCR = merge(ConsistentInsertionsRCR, RCRPrimerPlotPoints, by="motif_ID")
-ConsistentInsertionsRCR$p_ID = paste(ConsistentInsertionsRCR$p1_start, ConsistentInsertionsRCR$p1_end ,ConsistentInsertionsRCR$p2_start, ConsistentInsertionsRCR$p2_end, sep="-")
-RCRagg = aggregate(READS~p_ID, data=ConsistentInsertionsRCR, sum)
-RCRtable = as.data.frame(table(ConsistentInsertionsRCR$p_ID))
-RCRagg = merge(RCRagg, RCRtable, by.x="p_ID", by.y="Var1")
-ConsistentInsertionsRCR = merge(RCRagg, ConsistentInsertionsRCR, by="p_ID")
-ConsistentInsertionsRCR = subset(ConsistentInsertionsRCR, ! p2_start>p1_start & p2_start<p1_end)
-ConsistentInsertionsRCRsimplified = ConsistentInsertionsRCR[!duplicated(ConsistentInsertionsRCR$p_ID),]
-ConsistentInsertionsRCRsimplified$p2_start2 = ConsistentInsertionsRCRsimplified$p2_start-0.5
-ConsistentInsertionsRCRsimplified$p2_end2 = ConsistentInsertionsRCRsimplified$p2_end+0.5
-ConsistentInsertionsRCRsimplified = ConsistentInsertionsRCRsimplified[, -c(5:27), drop=FALSE]
-colnames(ConsistentInsertionsRCRsimplified)[2] = "READS"
-
-              #Deletes some unnecessary columns to make the data frame easier to look through. Changes READS.x to READS   #
-              #Theres more that can be removed still but leaving it at this point for now.                                #
 
 #----------------Combining Direct Repeat and Reverse Complement Repeat-----------------------------------------
+
 DirectRepeats = rbind(ConsistentInsertionsDRLsimplified, ConsistentInsertionsDRRsimplifed)
-DirectRepeats$RC_START_TRUE = "NA"
-DirectRepeats$RC_END_TRUE = "NA"
-DirectRepeats$mechanism = ifelse(DirectRepeats$is_trans=="trans", "Trans", "Loop-out")
+if (nrow(DirectRepeats) > 0){
+  DirectRepeats$RC_START_TRUE = "NA"
+  DirectRepeats$RC_END_TRUE = "NA"
+  DirectRepeats$mechanism = ifelse(DirectRepeats$is_trans=="trans", "Trans", "Loop-out")
+}
+
 ReverseCompRepeats = rbind(ConsistentInsertionsRCLsimplified, ConsistentInsertionsRCRsimplified)
-ReverseCompRepeats$DR_START_TRUE = "NA"
-ReverseCompRepeats$DR_END_TRUE = "NA"
-ReverseCompRepeats$mechanism = "Snap-back"
+if (nrow(ReverseCompRepeats)){
+  ReverseCompRepeats$DR_START_TRUE = "NA"
+  ReverseCompRepeats$DR_END_TRUE = "NA"
+  ReverseCompRepeats$mechanism = "Snap-back"
+}
 
 AllRepeats = rbind(ReverseCompRepeats, DirectRepeats)
+
+
 AllRepeats$p_mechID = paste(AllRepeats$p_ID,AllRepeats$mechanism,sep="-")
         # At this point since we already aggregated the reads by IDs and simplified by removing duplicate IDs, each entry     #
         # should have its own p2_mechID. If there are duplicates for some reason, run the 5 lines below that have # in front. #
@@ -614,12 +658,17 @@ dev.off()
 #----------------Insertion Repeat Motif Plot - Data Manipulation-------------------
 DRMotif = rbind(ConsistentInsertionsDRL, ConsistentInsertionsDRR)
 RCMotif = rbind(ConsistentInsertionsRCL, ConsistentInsertionsRCR)
-DRMotif$RC_START_TRUE = "NA"
-DRMotif$RC_END_TRUE = "NA"
-DRMotif$mechanism = ifelse(DRMotif$is_trans=="trans", "Trans", "Loop-out")
-RCMotif$DR_START_TRUE = "NA"
-RCMotif$DR_END_TRUE = "NA"
-RCMotif$mechanism = "Snap-back"
+
+if (nrow(DRMotif)>0){
+  DRMotif$RC_START_TRUE = "NA"
+  DRMotif$RC_END_TRUE = "NA"
+  DRMotif$mechanism = ifelse(DRMotif$is_trans=="trans", "Trans", "Loop-out")
+}
+if (nrow(RCMotif)>0){
+  RCMotif$DR_START_TRUE = "NA"
+  RCMotif$DR_END_TRUE = "NA"
+  RCMotif$mechanism = "Snap-back"
+}
 InsRepeatMotif = rbind(DRMotif, RCMotif)
 InsRepeatMotif$MOTIF_START <- ifelse(InsRepeatMotif$DR_START_TRUE=="NA", InsRepeatMotif$RC_START_TRUE,
                                       InsRepeatMotif$DR_START_TRUE)
@@ -1492,3 +1541,4 @@ dev.off()
 
 #-------------------------Deletion Stopper Plot - Data Manipulation----------
 #Project for another day
+

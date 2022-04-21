@@ -27,11 +27,11 @@ for ( i in 1:nfiles){
   file2=paste0(path, name_file$filename2[i])
   newfile=paste0(newpath, name_file$NAME[i], ".csv")
   if(is.symlink(file1)){
-    #hifibr_input = read.csv(file1, sep="\t", col.names=header, header=FALSE)
-    #write.csv(hifibr_input, newfile, row.names = F, quote=F)
+    hifibr_input = read.csv(file1, sep="\t", col.names=header, header=FALSE)
+    write.csv(hifibr_input, newfile, row.names = F, quote=F)
   }else if(is.symlink(file2) ){
-    #hifibr_input = read.csv(file2, sep="\t", col.names=header, header=FALSE)
-    #write.csv(hifibr_input, newfile, row.names = F, quote=F)
+    hifibr_input = read.csv(file2, sep="\t", col.names=header, header=FALSE)
+    write.csv(hifibr_input, newfile, row.names = F, quote=F)
   }else{
     print(paste0("NOT found ", df$name[i], " ", name_file$filename2[i]))
   }
