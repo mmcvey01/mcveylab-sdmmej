@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 args = commandArgs(trailingOnly=TRUE)
 
-suppressPackageStartupMessages({
+suppressWarnings(suppressMessages({
   library(seqinr)
   library(ggplot2)
   library(grid)
@@ -12,7 +12,7 @@ suppressPackageStartupMessages({
   library(tidyverse)
   library(reshape)
   library(plyr)
-})
+}))
 
 #In order to debug, uncomment this and comment the command line information
 #outdir="~/Box/bioinformatics_research_technology/rt_bioinformatics_consultations/mcvey_lab_rt_bioinformatics/terrence_dna_repair/TestData/PolyGSeq_output/"

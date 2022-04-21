@@ -10,10 +10,11 @@
 #!/usr/bin/env Rscript
 args = commandArgs(trailingOnly=TRUE)
 
-suppressPackageStartupMessages(library(tidyverse))
-suppressPackageStartupMessages(library(Biostrings))
-suppressPackageStartupMessages(library(stringr))
-suppressPackageStartupMessages(library(dplyr))
+suppressWarnings(suppressMessages({library(tidyverse)
+  library(Biostrings)
+  library(stringr)
+  library(dplyr)
+}))
 
 #test if there is at least one argument: if not, return an error
 if (length(args)<5) {
@@ -28,9 +29,17 @@ if (length(args)<5) {
 
 }
 
+# hifi_in="/Users/rbator01/Library/CloudStorage/Box-Box/bioinformatics_research_technology/rt_bioinformatics_consultations/mcvey_lab_rt_bioinformatics/terrence_dna_repair/HiSeq_CRISPR_Data/renamed_files/R3_output/R3_reclassified.csv"
+# insertion_in="/Users/rbator01/Library/CloudStorage/Box-Box/bioinformatics_research_technology/rt_bioinformatics_consultations/mcvey_lab_rt_bioinformatics/terrence_dna_repair/HiSeq_CRISPR_Data/renamed_files/R3_output/R3_insertion.txt"
+# outdir="/Users/rbator01/Library/CloudStorage/Box-Box/bioinformatics_research_technology/rt_bioinformatics_consultations/mcvey_lab_rt_bioinformatics/terrence_dna_repair/HiSeq_CRISPR_Data/renamed_files/R3_output/"
+# nick=161
+# search_radius=30
 
 a<-read.csv(insertion_in)
 
+if(nrow(a) == 0){
+  stop("\r No insertions in file")
+}
 ## get reference
 hifibr_input = read.csv(hifi_in,header=T)
 

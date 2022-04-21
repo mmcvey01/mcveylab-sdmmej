@@ -47,7 +47,7 @@ echo "------"
 echo "Starting insertion consistency script on insertions"
 echo "------"
 
-Rscript insertion/INSERTION_PROGRAM.R ${hifi_reclass} ${insertion_out} $results_dir $breakpoint $search_radius
+Rscript insertion/INSERTION_PROGRAM.R ${hifi_reclass} ${insertion_out} $results_dir $breakpoint $search_radius >& ${results_dir}/insertion_insertion_log.txt
 
 echo "------"
 echo "Done insertion script on insertions"
@@ -57,7 +57,7 @@ echo "------"
 echo "Starting insertion consistency script on complex"
 echo "------"
 
-Rscript insertion/INSERTION_PROGRAM.R ${hifi_reclass} ${complex_out} $results_dir $breakpoint $search_radius
+Rscript insertion/INSERTION_PROGRAM.R ${hifi_reclass} ${complex_out} $results_dir $breakpoint $search_radius >& ${results_dir}/insertion_complex_log.txt
 
 echo "------"
 echo "Done insertion script on complex"
@@ -69,7 +69,7 @@ echo "------"
 echo "Starting plotting script"
 echo "------"
 
-Rscript SDMMEJ_Plots.R $results_dir $bn
+Rscript SDMMEJ_Plots.R $results_dir $bn >& ${results_dir}/plotting_log.txt
 
 echo "------"
 echo "Done plotting script"
