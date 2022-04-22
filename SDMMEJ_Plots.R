@@ -24,52 +24,73 @@ if (length(args)<2) {
 }
 
 #In order to debug, uncomment this and comment the command line information
-#outdir="/Users/rbator01/Library/CloudStorage/Box-Box/bioinformatics_research_technology/rt_bioinformatics_consultations/mcvey_lab_rt_bioinformatics/terrence_dna_repair/HiSeq_CRISPR_Data/renamed_files/R988_output/"
-#plasmid="R988"
+outdir="/Users/rbator01/Library/CloudStorage/Box-Box/bioinformatics_research_technology/rt_bioinformatics_consultations/mcvey_lab_rt_bioinformatics/terrence_dna_repair/HiSeq_CRISPR_Data/renamed_files/R1_output/"
+plasmid="R1"
 
 #-----------------------Read In Data Frames--------------------------------------
-# Read in "_insertion_insertion_consistency2.csv" file from SDMMEJ pipeline
 
-inHifibrReclassified<-read.csv(paste0(outdir, "/", plasmid, "_reclassified.csv"))
-insertionsConsistent = read.csv(paste0(outdir, "/", plasmid,"_insertion_insertion_consistency2.csv"),row.names=1)
-
-complexConsistent = read.csv(paste0(outdir, "/", plasmid, "_complex_insertion_consistency2.csv"), row.names = 1)
-
+## Some of these files may be missing from the pipeline, in that case, we need to create an empty dataframe so the code will run
 reclassData = read.csv(paste0(outdir, "/", plasmid, "_reclassified.csv"), row.names = 1)
 
-del = read.csv(paste0(outdir, "/", plasmid, "_deletion_consistency_log_subset.csv"))
+## Insertion Files
+insertion_file=paste0(outdir, "/", plasmid,"_insertion_insertion_consistency2.csv")
+ins_consistent_colnames=c("ID","DR_START","DR_END","RC_START","RC_END","consistency","RECONSTRUCTED_SEQ",
+                         "left_del","right_del","del_seq","insertion","plasmid","DRmotif_length",
+                         "RCmotif_length","Loop-out","Snap-back")
 
-DeletionData = read.csv(paste0(outdir, "/", plasmid, "_deletion_consistency_table.txt"), sep="\t", header=T)
+if (file.exists(insertion_file)){
+  insertionsConsistent = read.csv(insertion_file, row.names=1)
+}else{
+  insertionsConsistent = data.frame(matrix(nrow=0, ncol=length(ins_consistent_colnames)))
+  colnames(insertionsConsistent) = ins_consistent_colnames
+}
+complex_file=paste0(outdir, "/", plasmid, "_complex_insertion_consistency2.csv")
+
+if (file.exists(complex_file)){
+  complexConsistent = read.csv(complex_file, row.names = 1)
+  
+}else{
+  complexConsistent = data.frame(matrix(nrow=0, ncol=length(ins_consistent_colnames)))
+  colnames(complexConsistent) = ins_consistent_colnames
+  
+}
+
+
+## Deletion Files
+del_file_1=paste0(outdir, "/", plasmid, "_deletion_consistency_log_subset.csv")
+del_file_2=paste0(outdir, "/", plasmid, "_deletion_consistency_table.txt")
+
+if(file.exists(del_file_1)){
+  del = read.csv(del_file_1)
+}else{
+  colnames=c("Sample ID","Deletion Length","Repair Type","Mechanism","Motif to Break","Motif to Deletion","P1 to Break","P1 to Deletion","P2 to Break","P2 to Deletion","P1 to P2","Motif Length","Break Side",
+             "Deletion to MH","Motif Sequence")
+  del=data.frame(matrix(nrow=0, ncol=length(colnames)))
+  colnames(del) = colnames
+}
+
+if(file.exists(del_file_2)){
+  DeletionData = read.csv(del_file_2, header=T, sep="\t")
+}else{
+  colnames=c("PLASMID","ID","GENOTYPE","REPAIR_TYPE","SEQ","TOTAL_DELETION","LEFT_DEL_INDEX","RIGHT_DEL_INDEX","CONSISTENCY")
+  DeletionData = data.frame(matrix(nrow=0, ncol=length(colnames)))
+  colnames(DeletionData) = colnames
+}
+
 
 #----------------------Basic Information Input-----------------------------------
-
-names(inHifibrReclassified)[names(inHifibrReclassified) == "ALIGNED_SEQ"] <- "RECONSTRUCTED_SEQ"
+names(reclassData)[names(reclassData) == "ALIGNED_SEQ"] <- "RECONSTRUCTED_SEQ"
 
 #### get the length of the final sequence
-referenceSeq = subset(inHifibrReclassified, CLASS=="exact")
+referenceSeq = subset(reclassData, CLASS=="exact")
 referencetxt = referenceSeq$RECONSTRUCTED_SEQ
 referenceSplit = unlist(strsplit(as.character(referencetxt), split=""))
 lengthRef = nchar(as.character(referencetxt))
 
-# sequence_segment_for_label = substr(exact_sequence$RECONSTRUCTED_SEQ,left_lim, right_lim)
-# axis_label = as.list(strsplit(sequence_segment_for_label, "")[[1]])
-#breakpoint_distance_from_left = exact_sequence$DISTANCE_FROM_BREAK_RIGHT
-
 BreakPointFromLeft =  referenceSeq$DISTANCE_FROM_BREAK_RIGHT #Input Break Point From Left used in Hi-FiBR
 BreakPointFromRight =  referenceSeq$DISTANCE_FROM_BREAK_LEFT #Input Break Point From Right used in Hi-FiBR
 
-#import reference .fasta file
-          #if you get error: "incomplete final line found on...", open .fasta file in text editor, 
-          #put cursor at last point in file and hit enter, then save, that should fix it
-#referenceSeq = read.fasta(paste(plasmid,".fa", sep=""), as.string = TRUE, seqonly = TRUE)
-#lengthRef = getLength(referenceSeq)
-#referencetxt = read.table(paste(plasmid,".txt", sep=""))
-#referenceSplit = unlist(strsplit(as.character(referencetxt), split=""))
-
-
-
 #-----------------------------Data Manipulation for further SD-MMEJ Analysis-------------------------------------------
-names(reclassData)[names(reclassData) == "ALIGNED_SEQ"] <- "RECONSTRUCTED_SEQ" #renames "ALIGNED_SEQ" column for future 
 CombinedCurated = subset(reclassData, READS>9) #eliminates all lines with less reads than what we choose to specify 
 CombinedCurated$percent = CombinedCurated$READS/sum(CombinedCurated$READS)*100
 inaccurate = subset(CombinedCurated, CLASS!="exact") #removes the "exact" sequence to narrow down to inaccurate repair events only
@@ -92,9 +113,12 @@ complexInsertion=rbind(complex, insertions)
 InsComConsistent = rbind(insertionsConsistent, complexConsistent)
 InsComConsistent$RIGHT_DEL <- lengthRef -(nchar(as.character(InsComConsistent$RECONSTRUCTED_SEQ))-InsComConsistent$right_del+1) 
 InsComMerge = merge(InsComConsistent, complexInsertion, "RECONSTRUCTED_SEQ", all=FALSE)
-del$SEQ = toupper(del$SEQ)
+
+try( {del$SEQ = toupper(del$SEQ)}, silent=TRUE)
 names(del)[names(del)=="SEQ"] = "RECONSTRUCTED_SEQ"
+
 deletionsMerged = merge(del, deletions, "RECONSTRUCTED_SEQ", all=FALSE )
+
 write.csv(deletionsMerged, paste(outdir, "/", "table_outputs/",plasmid,"_deletions_table.csv", sep=""))
 
 InsertsComplex = InsComMerge[,18:32]
@@ -105,13 +129,17 @@ InsertsComplex$MH_Length = InsComMerge$MH_Length
 InsertsComplex$NUMBER_OF_ALIGNMENTS  = InsComMerge$NUMBER_OF_ALIGNMENTS
 InsertsComplex$percent = InsComMerge$percent
 InsertsComplex$percent_inaccurate = InsComMerge$percent_inaccurate
-InsertsComplex$REPAIR_TYPE = "InDel"
-InsertsComplex$CLASS = "Insertion"
+
+# these tables can be empty
+try( {InsertsComplex$REPAIR_TYPE = "InDel"}, silent=TRUE)
+try( {InsertsComplex$CLASS = "Insertion"}, silent=TRUE)
+
 InsertsComplex$left_del = InsComMerge$left_del 
 InsertsComplex$right_del = InsComMerge$right_del
 InsertsComplex$CONSISTENCY = InsComMerge$consistency
 
 del1 <- cbind(deletionsMerged[,10:24])
+
 del1$INSERTED_SEQ <- NA
 del1$RECONSTRUCTED_SEQ <- deletionsMerged$RECONSTRUCTED_SEQ
 del1$READS <- deletionsMerged$READS
@@ -160,7 +188,10 @@ ConsistentInsertions = ConsistentInsertions[!is.na(ConsistentInsertions$DR_START
 ConsistentInsertions$SIDE = ifelse(ConsistentInsertions$DR_END > ConsistentInsertions$right_del, "RIGHT", "LEFT")
 LoopOut = as.data.frame(ConsistentInsertions$Loop.out)
 LoopOut = as.data.frame(sapply(LoopOut, gsub, pattern="-", replacement=""))
-colnames(LoopOut)[1]="RM"
+
+# can be empty
+try({colnames(LoopOut)[1]="RM"}, silent=TRUE)
+
 ConsistentInsertions = cbind(ConsistentInsertions, LoopOut)
 ConsistentInsertions = ConsistentInsertions[!is.na(ConsistentInsertions$RM),]
 ConsistentInsertions$insertion_length = nchar(as.character(ConsistentInsertions$insertion))
@@ -263,11 +294,11 @@ if (nrow(ConsistentInsertionsDRR) > 0){
   DRRagg = merge(DRRagg, DRRtable, by.x="p_ID", by.y="Var1")
   
   ConsistentInsertionsDRR = merge(DRRagg, ConsistentInsertionsDRR, by="p_ID")
-  ConsistentInsertionsDRRsimplifed = ConsistentInsertionsDRR[!duplicated(ConsistentInsertionsDRR$p_ID),]
-  ConsistentInsertionsDRRsimplifed$p2_start2 = ConsistentInsertionsDRRsimplifed$p2_start-0.5
-  ConsistentInsertionsDRRsimplifed$p2_end2 = ConsistentInsertionsDRRsimplifed$p2_end+0.5
-  ConsistentInsertionsDRRsimplifed = ConsistentInsertionsDRRsimplifed[, -c(5:27), drop=FALSE]
-  colnames(ConsistentInsertionsDRRsimplifed)[2] = "READS"
+  ConsistentInsertionsDRRsimplified = ConsistentInsertionsDRR[!duplicated(ConsistentInsertionsDRR$p_ID),]
+  ConsistentInsertionsDRRsimplified$p2_start2 = ConsistentInsertionsDRRsimplified$p2_start-0.5
+  ConsistentInsertionsDRRsimplified$p2_end2 = ConsistentInsertionsDRRsimplified$p2_end+0.5
+  ConsistentInsertionsDRRsimplified = ConsistentInsertionsDRRsimplified[, -c(5:27), drop=FALSE]
+  colnames(ConsistentInsertionsDRRsimplified)[2] = "READS"
   }else {
     colnames=c('p_ID','READS','Freq.x','Freq.y','NUMBER_OF_ALIGNMENTS','MISMATCH_PERCENTAGE_TO_RECONSTRUCTED','CLASS_final',
                'percent','percent_inaccurate','ID','DR_START','DR_END','RC_START','RC_END','consistency','left_del','right_del','del_seq','insertion','plasmid',
@@ -275,8 +306,8 @@ if (nrow(ConsistentInsertionsDRR) > 0){
                'is_trans.x','p1_start.x','p1_end.x','p1_length.x','mh_start.x','mh_end.x','mh_length.x','ins_start.x','ins_end.x','ins_length.x','p2_start.x','p2_end.x',
                'p2_length.x','start.y','end.y','is_trans.y','p1_start.y',
                'p1_end.y','p1_length.y','mh_start.y','mh_end.y','mh_length.y','ins_start.y','ins_end.y','ins_length.y','p2_start.y','p2_end.y','p2_length.y')
-    ConsistentInsertionsDRRsimplifed = data.frame(matrix(nrow=0, ncol=length(colnames)))
-    colnames(ConsistentInsertionsDRRsimplifed) = colnames
+    ConsistentInsertionsDRRsimplified = data.frame(matrix(nrow=0, ncol=length(colnames)))
+    colnames(ConsistentInsertionsDRRsimplified) = colnames
   }                         
               #Deletes some unnecessary columns to make the data frame easier to look through. Changes READS.x to READS   #
               #There's more that can be removed still but leaving it at this point for now.                                #
@@ -357,9 +388,9 @@ if (nrow(ConsistentInsertionsDRL) > 0){
   ConsistentInsertionsDRLsimplified = ConsistentInsertionsDRLsimplified[, -c(5:27), drop=FALSE]
   colnames(ConsistentInsertionsDRLsimplified)[2] = "READS"
 }else{
-  colnames=colnames(ConsistentInsertionsDRRsimplifed)
-  ConsistentInsertionsDRLsimplifed = data.frames(matrix(nrow=0, ncol=length(colnames)))
-  colnames(ConsistentInsertionsDRLsimplifed) = colnames
+  colnames=colnames(ConsistentInsertionsDRRsimplified)
+  ConsistentInsertionsDRLsimplified = data.frame(matrix(nrow=0, ncol=length(colnames)))
+  colnames(ConsistentInsertionsDRLsimplified) = colnames
 }
               #Deletes some unnecessary columns to make the data frame easier to look through. Changes READS.x to READS   #
               #Theres more that can be removed still but leaving it at this point for now.                                #
@@ -370,7 +401,10 @@ ConsistentInsertionsRC = ConsistentInsertionsRC[!is.na(ConsistentInsertionsRC$RC
 ConsistentInsertionsRC$SIDE = ifelse(ConsistentInsertionsRC$RC_END>ConsistentInsertionsRC$right_del, "RIGHT", "LEFT")
 SnapBack = as.data.frame(ConsistentInsertionsRC$Snap.back) #makes dataframe of just the snapback column
 SnapBack = as.data.frame(sapply(SnapBack,gsub,pattern="-", replacement=""))
-colnames(SnapBack)[1]="RM"
+
+# can be empty
+try({colnames(SnapBack)[1]="RM"}, silent=TRUE)
+
 ConsistentInsertionsRC = cbind(ConsistentInsertionsRC, SnapBack)
 ConsistentInsertionsRC$insertion_length = nchar(as.character(ConsistentInsertionsRC$insertion))
 ConsistentInsertionsRC$RC_START_TRUE = ifelse(ConsistentInsertionsRC$SIDE=="RIGHT",
@@ -567,22 +601,24 @@ if (nrow(ConsistentInsertionsRCR) > 0){
 
 #----------------Combining Direct Repeat and Reverse Complement Repeat-----------------------------------------
 
-DirectRepeats = rbind(ConsistentInsertionsDRLsimplified, ConsistentInsertionsDRRsimplifed)
-if (nrow(DirectRepeats) > 0){
+DirectRepeats = rbind(ConsistentInsertionsDRLsimplified, ConsistentInsertionsDRRsimplified)
+
+try( {
   DirectRepeats$RC_START_TRUE = "NA"
   DirectRepeats$RC_END_TRUE = "NA"
   DirectRepeats$mechanism = ifelse(DirectRepeats$is_trans=="trans", "Trans", "Loop-out")
-}
+}, silent=TRUE)
+
 
 ReverseCompRepeats = rbind(ConsistentInsertionsRCLsimplified, ConsistentInsertionsRCRsimplified)
-if (nrow(ReverseCompRepeats)){
+try( {
   ReverseCompRepeats$DR_START_TRUE = "NA"
   ReverseCompRepeats$DR_END_TRUE = "NA"
   ReverseCompRepeats$mechanism = "Snap-back"
-}
+}, silent=TRUE)
+
 
 AllRepeats = rbind(ReverseCompRepeats, DirectRepeats)
-
 
 AllRepeats$p_mechID = paste(AllRepeats$p_ID,AllRepeats$mechanism,sep="-")
         # At this point since we already aggregated the reads by IDs and simplified by removing duplicate IDs, each entry     #
@@ -603,247 +639,254 @@ AllRepeats$ins_end2 <- AllRepeats$ins_end+.5
 AllRepeats$percent_insertion_jxn <- AllRepeats$READS/sum(AllRepeats$READS)*100
 
 #----------------Single-step Insertion Reads Primer Plot Data Manipulation-------------------
-AllRepeats$jxnID = paste(AllRepeats$p1_start, AllRepeats$p1_end, AllRepeats$p2_start, AllRepeats$p2_end, AllRepeats$mechanism, sep="-")
-          # At this point since we already aggregated the reads by IDs and simplified by removing duplicate IDs, each entry   #
-          # should have its own jxnID. If there are duplicates for some reason, run the 5 lines below that have # in front.   #
 
-#jxnAGGR =  aggregate(READS~jxnID, data=AllRepeats, sum)
-#jxnTable = as.data.frame(table(AllRepeats$jxnID))
-#jxnAGGRTable = merge(jxnAGGR, jxnTable, by.x="jxnID", by.y="Var1")
-#AllRepeats = merge(jxnAGGRTable, AllRepeats, by="jxnID")
-#jxnSimplified = AllRepeats[!duplicated(AllRepeats$jxnID),]
-
-jxnLeft = subset(AllRepeats, SIDE=="LEFT")
-jxnRight = subset(AllRepeats, SIDE=="RIGHT")
-jxnLeft = jxnLeft[order(jxnLeft$p2_start),]
-jxnRight = jxnRight[order(jxnRight$p2_start, decreasing=TRUE),]
-jxnLeft$order = paste(10:(9+nrow(jxnLeft)), "-", sep = "")
-jxnRight$order = paste(10:(9+nrow(jxnRight)), "-", sep = "")
-jxn = rbind(jxnLeft, jxnRight)
-jxn = jxn[order(jxn$order, decreasing=TRUE),]
-jxn = arrange(transform(jxn, jxnID=factor(jxnID, levels = jxnID)),jxnID)
-
-## Remove not actual insertion events, most of these are complex events that are actually simple deletions.
-## Nick will send Rebecca some examples to check where they are being misidentified
-jxn3 = subset(jxn, p1_start2!=p2_start2)
-jxn3=subset(jxn3, abs(p1_start-p2_start)>=2)
-jxn3=subset(jxn3, abs(p1_start-p2_end)>2)
-jxn3=subset(jxn3, p1_start2!=p1_end2)
-jxn3$percent_insertion_jxn <- jxn3$READS/sum(jxn3$READS)*100
-write.csv (jxn3, paste(outdir, "/", "table_outputs/", plasmid, "_break.csv", sep=""))
-
-#----------------Single-step Insertion Reads Primer Plot-------------------
-rect_left <- c(33.5,43.5,53.5,63.5,73.5,83.5,93.5,103.5,113.5,123.5,133.5,143.5,153.5,163.5,173.5,183.5,193.5)
-rectangles <- data.frame(xmin = rect_left, xmax = rect_left + 5, ymin = -Inf,ymax = Inf)
-PrimerPlotBreaks = min(jxn3$p1_start2-2.5): max(jxn3$p1_end2+2.5)
-PrimerPlotLabel = dput(as.character(referenceSplit[PrimerPlotBreaks]))
-PrimerPlot <- ggplot()+geom_boxplot(data=jxn3, aes(x=jxnID, ymin = p2_start2, lower = p2_start2, middle = p2_start2, 
-                                                               upper = p2_end2, ymax = p1_start,fill=percent_insertion_jxn, linetype=mechanism),
+if (nrow(AllRepeats)>0){
+  AllRepeats$jxnID = paste(AllRepeats$p1_start, AllRepeats$p1_end, AllRepeats$p2_start, AllRepeats$p2_end, AllRepeats$mechanism, sep="-")
+  # At this point since we already aggregated the reads by IDs and simplified by removing duplicate IDs, each entry   #
+  # should have its own jxnID. If there are duplicates for some reason, run the 5 lines below that have # in front.   #
+  
+  #jxnAGGR =  aggregate(READS~jxnID, data=AllRepeats, sum)
+  #jxnTable = as.data.frame(table(AllRepeats$jxnID))
+  #jxnAGGRTable = merge(jxnAGGR, jxnTable, by.x="jxnID", by.y="Var1")
+  #AllRepeats = merge(jxnAGGRTable, AllRepeats, by="jxnID")
+  #jxnSimplified = AllRepeats[!duplicated(AllRepeats$jxnID),]
+  
+  jxnLeft = subset(AllRepeats, SIDE=="LEFT")
+  jxnRight = subset(AllRepeats, SIDE=="RIGHT")
+  jxnLeft = jxnLeft[order(jxnLeft$p2_start),]
+  jxnRight = jxnRight[order(jxnRight$p2_start, decreasing=TRUE),]
+  
+  # can be empty
+  try({jxnLeft$order = paste(10:(9+nrow(jxnLeft)), "-", sep = "")}, silent=T)
+  try({jxnRight$order = paste(10:(9+nrow(jxnRight)), "-", sep = "")}, silent=T)
+  
+  jxn = rbind(jxnLeft, jxnRight)
+  try({jxn = jxn[order(jxn$order, decreasing=TRUE),]}, silent=T)
+  jxn = arrange(transform(jxn, jxnID=factor(jxnID, levels = jxnID)),jxnID)
+  
+  ## Remove not actual insertion events, most of these are complex events that are actually simple deletions.
+  ## Nick will send Rebecca some examples to check where they are being misidentified
+  jxn3 = subset(jxn, p1_start2!=p2_start2)
+  jxn3=subset(jxn3, abs(p1_start-p2_start)>=2)
+  jxn3=subset(jxn3, abs(p1_start-p2_end)>2)
+  jxn3=subset(jxn3, p1_start2!=p1_end2)
+  jxn3$percent_insertion_jxn <- jxn3$READS/sum(jxn3$READS)*100
+  write.csv (jxn3, paste(outdir, "/", "table_outputs/", plasmid, "_break.csv", sep=""))
+  
+  #----------------Single-step Insertion Reads Primer Plot-------------------
+  rect_left <- c(33.5,43.5,53.5,63.5,73.5,83.5,93.5,103.5,113.5,123.5,133.5,143.5,153.5,163.5,173.5,183.5,193.5)
+  rectangles <- data.frame(xmin = rect_left, xmax = rect_left + 5, ymin = -Inf,ymax = Inf)
+  PrimerPlotBreaks = min(jxn3$p1_start2-2.5): max(jxn3$p1_end2+2.5)
+  PrimerPlotLabel = dput(as.character(referenceSplit[PrimerPlotBreaks]))
+  PrimerPlot <- ggplot()+geom_boxplot(data=jxn3, aes(x=jxnID, ymin = p2_start2, lower = p2_start2, middle = p2_start2, 
+                                                     upper = p2_end2, ymax = p1_start,fill=percent_insertion_jxn, linetype=mechanism),
                                       colour="black",stat = "identity",width=.8) + coord_flip()+scale_linetype_manual(values=c("solid", "dashed","dotted"),guide="none")+
-  scale_fill_gradientn(colours = c("red","yellow","green","lightblue","darkblue"),values=c(1.0,0.8,0.6,0.4,0.2,0),
-                       limits=c(0,max(jxn3$percent_insertion_jxn+1.5)),guide_legend(title="% Single-step\nInsertion Reads"))+
-  scale_y_continuous(limits=c(min(jxn3$p1_start2-2.5),max(jxn3$p1_end2+2.5)),breaks=PrimerPlotBreaks,
-                     labels = PrimerPlotLabel,
-                     name = "Nucleotide",expand=c(0,0))+theme_classic(base_size = 10)+theme(axis.text.y= element_blank(),axis.title.y=element_blank(),
-                                                                                            axis.ticks=element_blank())+geom_rect(data=rectangles, aes(ymin=as.numeric(xmin), ymax=as.numeric(xmax), xmin=ymin, xmax=ymax),
-                                                                                                                                  fill="grey", alpha=0.4, colour=NA)+geom_boxplot(data=jxn3, aes(x=jxnID, ymin = p2_start2, lower = p2_start2, middle = p2_start2, 
-                                                                                                                                                                                                           upper = p2_end2, ymax = p2_end2,fill=percent_insertion_jxn, linetype=mechanism),colour="black",stat = "identity",width=.8)+ 
-  geom_boxplot(data=jxn3, aes(x=jxnID, ymin = p1_start2, lower = p1_start2, middle = p1_start2, upper = p1_end2, ymax = p1_end2,
-                                        fill=percent_insertion_jxn, linetype=mechanism),colour="black",stat = "identity",width=.8)+geom_hline(yintercept = BreakPointFromLeft+0.5, colour="red", size=0.6)
-PrimerPlot
-pdf(paste(outdir, "/", "plots/", plasmid, "_Ins_Primer_Plot.pdf", sep=""), height = 5, width = 10)
-PrimerPlot
-dev.off()
+    scale_fill_gradientn(colours = c("red","yellow","green","lightblue","darkblue"),values=c(1.0,0.8,0.6,0.4,0.2,0),
+                         limits=c(0,max(jxn3$percent_insertion_jxn+1.5)),guide_legend(title="% Single-step\nInsertion Reads"))+
+    scale_y_continuous(limits=c(min(jxn3$p1_start2-2.5),max(jxn3$p1_end2+2.5)),breaks=PrimerPlotBreaks,
+                       labels = PrimerPlotLabel,
+                       name = "Nucleotide",expand=c(0,0))+theme_classic(base_size = 10)+theme(axis.text.y= element_blank(),axis.title.y=element_blank(),
+                                                                                              axis.ticks=element_blank())+geom_rect(data=rectangles, aes(ymin=as.numeric(xmin), ymax=as.numeric(xmax), xmin=ymin, xmax=ymax),
+                                                                                                                                    fill="grey", alpha=0.4, colour=NA)+geom_boxplot(data=jxn3, aes(x=jxnID, ymin = p2_start2, lower = p2_start2, middle = p2_start2, 
+                                                                                                                                                                                                   upper = p2_end2, ymax = p2_end2,fill=percent_insertion_jxn, linetype=mechanism),colour="black",stat = "identity",width=.8)+ 
+    geom_boxplot(data=jxn3, aes(x=jxnID, ymin = p1_start2, lower = p1_start2, middle = p1_start2, upper = p1_end2, ymax = p1_end2,
+                                fill=percent_insertion_jxn, linetype=mechanism),colour="black",stat = "identity",width=.8)+geom_hline(yintercept = BreakPointFromLeft+0.5, colour="red", size=0.6)
+  PrimerPlot
+  pdf(paste(outdir, "/", "plots/", plasmid, "_Ins_Primer_Plot.pdf", sep=""), height = 5, width = 10)
+  PrimerPlot
+  dev.off()
 
-#----------------Insertion Repeat Motif Plot - Data Manipulation-------------------
-DRMotif = rbind(ConsistentInsertionsDRL, ConsistentInsertionsDRR)
-RCMotif = rbind(ConsistentInsertionsRCL, ConsistentInsertionsRCR)
-
-if (nrow(DRMotif)>0){
-  DRMotif$RC_START_TRUE = "NA"
-  DRMotif$RC_END_TRUE = "NA"
-  DRMotif$mechanism = ifelse(DRMotif$is_trans=="trans", "Trans", "Loop-out")
+  #----------------Insertion Repeat Motif Plot - Data Manipulation-------------------
+  DRMotif = rbind(ConsistentInsertionsDRL, ConsistentInsertionsDRR)
+  RCMotif = rbind(ConsistentInsertionsRCL, ConsistentInsertionsRCR)
+  
+  if (nrow(DRMotif)>0){
+    DRMotif$RC_START_TRUE = "NA"
+    DRMotif$RC_END_TRUE = "NA"
+    DRMotif$mechanism = ifelse(DRMotif$is_trans=="trans", "Trans", "Loop-out")
+  }
+  if (nrow(RCMotif)>0){
+    RCMotif$DR_START_TRUE = "NA"
+    RCMotif$DR_END_TRUE = "NA"
+    RCMotif$mechanism = "Snap-back"
+  }
+  InsRepeatMotif = rbind(DRMotif, RCMotif)
+  InsRepeatMotif$MOTIF_START <- ifelse(InsRepeatMotif$DR_START_TRUE=="NA", InsRepeatMotif$RC_START_TRUE,
+                                       InsRepeatMotif$DR_START_TRUE)
+  InsRepeatMotif$MOTIF_END <- ifelse(InsRepeatMotif$DR_END_TRUE=="NA",InsRepeatMotif$RC_END_TRUE,
+                                     InsRepeatMotif$DR_END_TRUE)
+  InsRepeatMotif$motif <- paste(InsRepeatMotif$MOTIF_START,InsRepeatMotif$MOTIF_END,sep="-")
+  InsRepeatMotif$motif_mechID <- paste(InsRepeatMotif$motif,InsRepeatMotif$mechanism,sep="-")
+  write.csv(InsRepeatMotif,paste(outdir, "/", "table_outputs/", plasmid, "_insertion_repeat_motif.csv", sep=""))
+  
+  InsRepeatMotifLeft = subset(InsRepeatMotif, SIDE=="LEFT")
+  InsRepeatMotifRight = subset(InsRepeatMotif, SIDE=="RIGHT")
+  InsRepeatMotifLeft = InsRepeatMotifLeft[order(as.numeric(InsRepeatMotifLeft$MOTIF_START), decreasing = TRUE),]
+  InsRepeatMotifRight = InsRepeatMotifRight[order(as.numeric(InsRepeatMotifRight$MOTIF_START), decreasing = TRUE),]
+  
+  InsRepeatMotifLeft$order = paste(10:(9+nrow(InsRepeatMotifLeft)), "-", sep="")
+  InsRepeatMotifRight$order = paste(10:(9+nrow(InsRepeatMotifRight)), "-", sep="")
+  
+  InsRepeatMotif = rbind(InsRepeatMotifLeft, InsRepeatMotifRight)
+  InsRepeatMotif = InsRepeatMotif[order(InsRepeatMotif$order, decreasing = TRUE),]
+  InsRepeatMotif$MOTIF_START2 = as.numeric(InsRepeatMotif$MOTIF_START)-0.5
+  InsRepeatMotif$MOTIF_END2 = as.numeric(InsRepeatMotif$MOTIF_END)+0.5
+  
+  ## multiple repeat motifs can have same primer pairs
+  ## this code is also removing complex that are actually simple deletions
+  InsRepeatMotif = subset(InsRepeatMotif, p1_start!=p2_start)
+  InsRepeatMotif = subset(InsRepeatMotif, !(p2_end>p1_start & p2_end<p1_end))
+  InsRepeatMotif = subset(InsRepeatMotif, abs(p1_start-p2_start)>=2)
+  InsRepeatMotif = subset(InsRepeatMotif, abs(p1_start-p2_end)>2)
+  InsRepeatMotif1 = subset(InsRepeatMotif, MOTIF_END2>BreakPointFromLeft+0.5 & MOTIF_START2<BreakPointFromLeft+0.5)
+  InsRepeatMotif = setdiff(InsRepeatMotif, InsRepeatMotif1)
+  InsRepeatMotif$percent_insertion = (InsRepeatMotif$READS.y/sum(InsRepeatMotif$READS.y))*100
+  
+  #----------------Insertion Repeat Motif Plot-------------------
+  rect_left <- c(43.5,53.5,63.5,73.5,83.5,93.5,103.5,113.5,123.5,133.5,143.5,153.5,163.5,173.5,183.5,193.5,203.5)
+  rectangles <- data.frame(xmin = rect_left,xmax = rect_left + 5,ymin = -Inf,ymax = Inf)
+  InsRepeatMotifPlotBreaks = min(InsRepeatMotif$MOTIF_START2-1.5):max(InsRepeatMotif$MOTIF_END2+1.5)
+  InsRepeatMotifPlotLabel = dput(as.character(referenceSplit[InsRepeatMotifPlotBreaks]))
+  RepeatMotifPlot <- ggplot()+
+    geom_boxplot(data=InsRepeatMotif, aes(x=motif_ID, ymin = MOTIF_START2, lower = MOTIF_START2, middle = MOTIF_START2, 
+                                          upper = MOTIF_END2, ymax = MOTIF_END2,fill=percent_insertion, linetype=mechanism),
+                 colour="white", stat = "identity",width=.8,lwd=.5) + coord_flip()+scale_linetype_manual(values=c("solid", "dashed","dotted"),guide="none")+
+    scale_fill_gradientn(colours = c("red","yellow","green","lightblue","darkblue"),values=c(1.0,0.8,0.6,0.4,0.2,0),
+                         guide_legend(title="% Single-step\nInsertion Reads"),limits=c(0,max(InsRepeatMotif$percent_insertion+0.5)))+scale_y_continuous(limits=c(min(InsRepeatMotif$MOTIF_START2-1.5),max(InsRepeatMotif$MOTIF_END2+1.5)),
+                                                                                                                                                        breaks=InsRepeatMotifPlotBreaks,
+                                                                                                                                                        labels = InsRepeatMotifPlotLabel,
+                                                                                                                                                        name = "Nucleotide",expand=c(0,0))+theme_classic(base_size = 10)+theme(legend.text=element_text(size=8,face="bold"),
+                                                                                                                                                                                                                               axis.text.y= element_blank(),axis.title.y=element_blank(),axis.text.x= element_text(face="bold"),axis.title.x=element_text(face="bold"),
+                                                                                                                                                                                                                               axis.ticks=element_blank(),
+                                                                                                                                                                                                                               panel.border = element_rect(colour = "black", fill=NA, size=1))+guides(guide_legend(title.theme = element_text(size=8, face="bold", angle=0),
+                                                                                                                                                                                                                                                                                                                   label.theme=element_text(size=8, face="bold", angle=0)))+geom_rect(data=rectangles, aes(ymin=as.numeric(xmin), 
+                                                                                                                                                                                                                                                                                                                                                                                                           ymax=as.numeric(xmax), xmin=ymin, xmax=ymax),fill="grey", alpha=0.4, colour=NA)+
+    geom_boxplot(data=InsRepeatMotif, aes(x=motif_ID, ymin = MOTIF_START2, lower = MOTIF_START2, middle = MOTIF_START2, 
+                                          upper = MOTIF_END2, ymax = MOTIF_END2,fill=percent_insertion, linetype=mechanism), colour="black",stat = "identity",
+                 width=.8,lwd=.5)+ geom_hline(yintercept = BreakPointFromLeft+0.5, colour="red", size=0.75)
+  RepeatMotifPlot
+  pdf(paste(outdir, "/", "plots/", plasmid, "_Insertion_Repeat_Motif_Plot.pdf", sep=""), height = 5, width = 10)
+  RepeatMotifPlot
+  dev.off()
+  
+  #----------------Insertion Resection - Data Manipulation-----------
+  #To generate a plot of the furthest identifiable point of resection or duplex unwinding = furthest from break repeat motif
+  InsLeft = subset(InsRepeatMotif, SIDE=="LEFT")
+  InsLeftLoop= subset(InsLeft, mechanism=="Loop-out")
+  InsLeftSnap = subset(InsLeft, mechanism=="Snap-back")
+  InsLeftLoop$RM_to_break = BreakPointFromLeft-as.numeric(InsLeftLoop$p1_start)
+  InsLeftSnap$RM_to_break = BreakPointFromLeft-as.numeric(InsLeftSnap$p1_start)
+  InsLeft=rbind(InsLeftLoop, InsLeftSnap)
+  InsRight = subset(InsRepeatMotif, SIDE=="RIGHT")
+  InsRightLoop = subset(InsRight, mechanism=="Loop-out")
+  InsRightSnap = subset(InsRight, mechanism=="Snap-back")
+  InsRightLoop$RM_to_break = as.numeric(InsRightLoop$p1_end)-BreakPointFromLeft
+  InsRightSnap$RM_to_break = as.numeric(InsRightSnap$p1_end)-BreakPointFromLeft
+  InsRight = rbind(InsRightLoop, InsRightSnap)
+  InsFromBreak = rbind(InsLeft, InsRight)
+  InsFromBreak = InsFromBreak[,-c(2:4, 6:19, 23:26, 28, 29, 51:65)]
+  InsFromBreak$percent= (InsFromBreak$READS.y/sum(InsFromBreak$READS.y))*100
+  write.csv(InsFromBreak, paste(outdir, "/", "table_outputs/", plasmid, "_insertion_resection_data.csv", sep=""))
+  InsFromBreakMean=sum(InsFromBreak$RM_to_break*InsFromBreak$READS.y)/sum(InsFromBreak$READS.y)
+  
+  #----------------Insertion Resection - Plot - Side-----------
+  InsertionResectionPlotSide = ggplot(InsFromBreak)+
+    geom_bar(aes(x=RM_to_break, y=percent, color=SIDE), position="stack", stat="identity", fill="grey50") +
+    theme_bw()+
+    geom_vline(aes(xintercept = InsFromBreakMean), colour="blue", size=0.75,linetype = "longdash")+
+    #geom_vline(aes(xintercept = median), colour="red", size=0.75,linetype = "longdash",data=distMedian)+
+    scale_y_continuous(name = "Percent Insertions (%)")+  
+    scale_x_continuous(name="Resection/Unwinding Required for SD-MMEJ Action (bp)",
+                       breaks = seq(0, max(InsFromBreak$RM_to_break), by = 2))+
+    theme(axis.text.x=element_text(size=10, face="bold"),
+          axis.text.y=element_text(size=10, face="bold"),
+          axis.title.x=element_text(size=12, face="bold"),
+          axis.title.y=element_text(size=12, face="bold"))+
+    theme(strip.text.x = element_text(size=10, face="bold"),
+          strip.text.y = element_text(size=10, face="bold"))
+  InsertionResectionPlotSide
+  pdf(paste(outdir, "/", "plots/", plasmid, "_Insertion_Resection_Plot_Side.pdf", sep=""), height = 5, width = 10)
+  InsertionResectionPlotSide
+  dev.off()
+  
+  #----------------Insertion Resections - Plot - Mechanism-----------
+  InsertionResectionPlotMechanism = ggplot(InsFromBreak)+
+    geom_bar(aes(x=RM_to_break, y=percent, color=mechanism), position="stack", stat="identity", fill="grey50") +
+    theme_bw()+
+    geom_vline(aes(xintercept = InsFromBreakMean), colour="blue", size=0.75,linetype = "longdash")+
+    #geom_vline(aes(xintercept = median), colour="red", size=0.75,linetype = "longdash",data=distMedian)+
+    scale_y_continuous(name = "Percent Insertions (%)")+  
+    scale_x_continuous(name="Resection/Unwinding Required for SD-MMEJ Action (bp)",
+                       breaks = seq(0, max(InsFromBreak$RM_to_break), by = 2))+
+    theme(axis.text.x=element_text(size=10, face="bold"),
+          axis.text.y=element_text(size=10, face="bold"),
+          axis.title.x=element_text(size=12, face="bold"),
+          axis.title.y=element_text(size=12, face="bold"))+
+    theme(strip.text.x = element_text(size=10, face="bold"),
+          strip.text.y = element_text(size=10, face="bold"))
+  InsertionResectionPlotMechanism
+  pdf(paste(outdir, "/", "plots/", plasmid, "_Insertion_Resection_Plot_Mechanism.pdf", sep=""), height = 5, width = 10)
+  InsertionResectionPlotMechanism
+  dev.off()
+  
+  #----------------Insertion Flap Plot - Data Manipulation-----------------------------------
+  InsFlap=InsRepeatMotif
+  InsFlap$LeftFlap = InsFlap$left_del+0.5
+  InsFlap$RightFlap = InsFlap$RIGHT_DEL+0.5
+  InsFlap$FlapID = paste(InsFlap$LeftFlap, InsFlap$RightFlap, InsFlap$mechanism)
+  InsFlapAggr=aggregate(READS.y~FlapID, data=InsFlap,sum)
+  InsFlapTable=as.data.frame(table(InsFlap$FlapID))
+  InsFlapAggr=merge(InsFlapAggr, InsFlapTable, by.x="FlapID", by.y="Var1")
+  InsFlap=merge(InsFlapAggr, InsFlap, by="FlapID")
+  InsFlap=InsFlap[!duplicated(InsFlap$FlapID),]
+  colnames(InsFlap)[2]= "READS"
+  InsFlap$percent_flap = InsFlap$READS/(sum(InsFlap$READS))*100
+  
+  #----------------Insetion Flap Plot - Plot-----------------------------------
+  rect_left <- c(43.5,53.5,63.5,73.5,83.5,93.5,103.5,113.5,123.5,133.5,143.5,153.5,163.5,173.5,183.5,193.5,203.5)
+  InsFlapPlotBreaks = min(InsFlap$LeftFlap-1.5):max(InsFlap$RightFlap+1.5)
+  InsFlapPlotLabel = dput(as.character(referenceSplit[InsFlapPlotBreaks]))
+  InsFlapPlot <- ggplot()+
+    geom_boxplot(data=InsFlap, aes(x=motif_ID, ymin = LeftFlap, lower = LeftFlap, middle = LeftFlap, 
+                                   upper = RightFlap, ymax = RightFlap,fill=percent_flap, linetype=mechanism),
+                 colour="white", stat = "identity",width=.8,lwd=.5) + coord_flip()+scale_linetype_manual(values=c("solid", "dashed","dotted"),guide="none")+
+    scale_fill_gradientn(colours = c("red","yellow","green","lightblue","darkblue"),values=c(1.0,0.8,0.6,0.4,0.2,0),
+                         guide_legend(title="% Deletion From\nSingle Step\nInsertion Events"),limits=c(0,max(InsFlap$percent_flap+1.5)))+scale_y_continuous(limits=c(min(InsFlap$LeftFlap-1.5),max(InsFlap$RightFlap+1.5)),
+                                                                                                                                                            breaks=InsFlapPlotBreaks,
+                                                                                                                                                            labels = InsFlapPlotLabel,
+                                                                                                                                                            name = "Nucleotide",expand=c(0,0))+theme_classic(base_size = 10)+theme(legend.text=element_text(size=8,face="bold"),
+                                                                                                                                                                                                                                   axis.text.y= element_blank(),axis.title.y=element_blank(),axis.text.x= element_text(face="bold"),axis.title.x=element_text(face="bold"),
+                                                                                                                                                                                                                                   axis.ticks=element_blank(),
+                                                                                                                                                                                                                                   panel.border = element_rect(colour = "black", fill=NA, size=1))+guides(guide_legend(title.theme = element_text(size=8, face="bold", angle=0),
+                                                                                                                                                                                                                                                                                                                       label.theme=element_text(size=8, face="bold", angle=0)))+geom_rect(data=rectangles, aes(ymin=as.numeric(xmin), 
+                                                                                                                                                                                                                                                                                                                                                                                                               ymax=as.numeric(xmax), xmin=ymin, xmax=ymax),fill="grey", alpha=0.4, colour=NA)+
+    geom_boxplot(data=InsFlap, aes(x=motif_ID, ymin = LeftFlap, lower = LeftFlap, middle = LeftFlap, 
+                                   upper = RightFlap, ymax = RightFlap,fill=percent_flap, linetype=mechanism), colour="black",stat = "identity",
+                 width=.8,lwd=.5)+ geom_hline(yintercept = BreakPointFromLeft+0.5, colour="red", size=0.75)
+  
+  InsFlapPlot
+  pdf(paste(outdir, "/", "plots/", plasmid, "_Insertion_Flap_Plot.pdf", sep=""), height = 5, width = 10)
+  InsFlapPlot
+  dev.off()
+  
+  #----------------Insertion Repeat Motif by Side - Plot---------------
+  InsSide = InsRepeatMotif
+  InsSidePlot = ggplot(InsSide)+
+    geom_bar(aes(x=SIDE, y=percent_insertion, color=mechanism), position="stack", stat="identity", fill="grey50") +
+    theme_bw()+
+    scale_y_continuous(name = "Percent Usage (%)")+  
+    scale_x_discrete(name="Side")+
+    theme(axis.text.x=element_text(size=10, face="bold"),
+          axis.text.y=element_text(size=10, face="bold"),
+          axis.title.x=element_text(size=12, face="bold"),
+          axis.title.y=element_text(size=12, face="bold"))+
+    theme(strip.text.x = element_text(size=10, face="bold"),
+          strip.text.y = element_text(size=10, face="bold"))
+  InsSidePlot
+  pdf(paste(outdir, "/", "plots/", plasmid, "_Insertion_Side_Usage_Plot.pdf", sep=""), height = 5, width = 10)
+  InsSidePlot
+  dev.off()
 }
-if (nrow(RCMotif)>0){
-  RCMotif$DR_START_TRUE = "NA"
-  RCMotif$DR_END_TRUE = "NA"
-  RCMotif$mechanism = "Snap-back"
-}
-InsRepeatMotif = rbind(DRMotif, RCMotif)
-InsRepeatMotif$MOTIF_START <- ifelse(InsRepeatMotif$DR_START_TRUE=="NA", InsRepeatMotif$RC_START_TRUE,
-                                      InsRepeatMotif$DR_START_TRUE)
-InsRepeatMotif$MOTIF_END <- ifelse(InsRepeatMotif$DR_END_TRUE=="NA",InsRepeatMotif$RC_END_TRUE,
-                                    InsRepeatMotif$DR_END_TRUE)
-InsRepeatMotif$motif <- paste(InsRepeatMotif$MOTIF_START,InsRepeatMotif$MOTIF_END,sep="-")
-InsRepeatMotif$motif_mechID <- paste(InsRepeatMotif$motif,InsRepeatMotif$mechanism,sep="-")
-write.csv(InsRepeatMotif,paste(outdir, "/", "table_outputs/", plasmid, "_insertion_repeat_motif.csv", sep=""))
-
-InsRepeatMotifLeft = subset(InsRepeatMotif, SIDE=="LEFT")
-InsRepeatMotifRight = subset(InsRepeatMotif, SIDE=="RIGHT")
-InsRepeatMotifLeft = InsRepeatMotifLeft[order(as.numeric(InsRepeatMotifLeft$MOTIF_START), decreasing = TRUE),]
-InsRepeatMotifRight = InsRepeatMotifRight[order(as.numeric(InsRepeatMotifRight$MOTIF_START), decreasing = TRUE),]
-InsRepeatMotifLeft$order = paste(10:(9+nrow(InsRepeatMotifLeft)), "-", sep="")
-InsRepeatMotifRight$order = paste(10:(9+nrow(InsRepeatMotifRight)), "-", sep="")
-InsRepeatMotif = rbind(InsRepeatMotifLeft, InsRepeatMotifRight)
-InsRepeatMotif = InsRepeatMotif[order(InsRepeatMotif$order, decreasing = TRUE),]
-InsRepeatMotif$MOTIF_START2 = as.numeric(InsRepeatMotif$MOTIF_START)-0.5
-InsRepeatMotif$MOTIF_END2 = as.numeric(InsRepeatMotif$MOTIF_END)+0.5
-
-## multiple repeat motifs can have same primer pairs
-## this code is also removing complex that are actually simple deletions
-InsRepeatMotif = subset(InsRepeatMotif, p1_start!=p2_start)
-InsRepeatMotif = subset(InsRepeatMotif, !(p2_end>p1_start & p2_end<p1_end))
-InsRepeatMotif = subset(InsRepeatMotif, abs(p1_start-p2_start)>=2)
-InsRepeatMotif = subset(InsRepeatMotif, abs(p1_start-p2_end)>2)
-InsRepeatMotif1 = subset(InsRepeatMotif, MOTIF_END2>BreakPointFromLeft+0.5 & MOTIF_START2<BreakPointFromLeft+0.5)
-InsRepeatMotif = setdiff(InsRepeatMotif, InsRepeatMotif1)
-InsRepeatMotif$percent_insertion = (InsRepeatMotif$READS.y/sum(InsRepeatMotif$READS.y))*100
-
-#----------------Insertion Repeat Motif Plot-------------------
-rect_left <- c(43.5,53.5,63.5,73.5,83.5,93.5,103.5,113.5,123.5,133.5,143.5,153.5,163.5,173.5,183.5,193.5,203.5)
-rectangles <- data.frame(xmin = rect_left,xmax = rect_left + 5,ymin = -Inf,ymax = Inf)
-InsRepeatMotifPlotBreaks = min(InsRepeatMotif$MOTIF_START2-1.5):max(InsRepeatMotif$MOTIF_END2+1.5)
-InsRepeatMotifPlotLabel = dput(as.character(referenceSplit[InsRepeatMotifPlotBreaks]))
-RepeatMotifPlot <- ggplot()+
-  geom_boxplot(data=InsRepeatMotif, aes(x=motif_ID, ymin = MOTIF_START2, lower = MOTIF_START2, middle = MOTIF_START2, 
-              upper = MOTIF_END2, ymax = MOTIF_END2,fill=percent_insertion, linetype=mechanism),
-              colour="white", stat = "identity",width=.8,lwd=.5) + coord_flip()+scale_linetype_manual(values=c("solid", "dashed","dotted"),guide="none")+
-              scale_fill_gradientn(colours = c("red","yellow","green","lightblue","darkblue"),values=c(1.0,0.8,0.6,0.4,0.2,0),
-              guide_legend(title="% Single-step\nInsertion Reads"),limits=c(0,max(InsRepeatMotif$percent_insertion+0.5)))+scale_y_continuous(limits=c(min(InsRepeatMotif$MOTIF_START2-1.5),max(InsRepeatMotif$MOTIF_END2+1.5)),
-              breaks=InsRepeatMotifPlotBreaks,
-              labels = InsRepeatMotifPlotLabel,
-              name = "Nucleotide",expand=c(0,0))+theme_classic(base_size = 10)+theme(legend.text=element_text(size=8,face="bold"),
-              axis.text.y= element_blank(),axis.title.y=element_blank(),axis.text.x= element_text(face="bold"),axis.title.x=element_text(face="bold"),
-              axis.ticks=element_blank(),
-              panel.border = element_rect(colour = "black", fill=NA, size=1))+guides(guide_legend(title.theme = element_text(size=8, face="bold", angle=0),
-              label.theme=element_text(size=8, face="bold", angle=0)))+geom_rect(data=rectangles, aes(ymin=as.numeric(xmin), 
-              ymax=as.numeric(xmax), xmin=ymin, xmax=ymax),fill="grey", alpha=0.4, colour=NA)+
-              geom_boxplot(data=InsRepeatMotif, aes(x=motif_ID, ymin = MOTIF_START2, lower = MOTIF_START2, middle = MOTIF_START2, 
-              upper = MOTIF_END2, ymax = MOTIF_END2,fill=percent_insertion, linetype=mechanism), colour="black",stat = "identity",
-              width=.8,lwd=.5)+ geom_hline(yintercept = BreakPointFromLeft+0.5, colour="red", size=0.75)
-RepeatMotifPlot
-pdf(paste(outdir, "/", "plots/", plasmid, "_Insertion_Repeat_Motif_Plot.pdf", sep=""), height = 5, width = 10)
-RepeatMotifPlot
-dev.off()
-
-#----------------Insertion Resection - Data Manipulation-----------
-#To generate a plot of the furthest identifiable point of resection or duplex unwinding = furthest from break repeat motif
-InsLeft = subset(InsRepeatMotif, SIDE=="LEFT")
-InsLeftLoop= subset(InsLeft, mechanism=="Loop-out")
-InsLeftSnap = subset(InsLeft, mechanism=="Snap-back")
-InsLeftLoop$RM_to_break = BreakPointFromLeft-as.numeric(InsLeftLoop$p1_start)
-InsLeftSnap$RM_to_break = BreakPointFromLeft-as.numeric(InsLeftSnap$p1_start)
-InsLeft=rbind(InsLeftLoop, InsLeftSnap)
-InsRight = subset(InsRepeatMotif, SIDE=="RIGHT")
-InsRightLoop = subset(InsRight, mechanism=="Loop-out")
-InsRightSnap = subset(InsRight, mechanism=="Snap-back")
-InsRightLoop$RM_to_break = as.numeric(InsRightLoop$p1_end)-BreakPointFromLeft
-InsRightSnap$RM_to_break = as.numeric(InsRightSnap$p1_end)-BreakPointFromLeft
-InsRight = rbind(InsRightLoop, InsRightSnap)
-InsFromBreak = rbind(InsLeft, InsRight)
-InsFromBreak = InsFromBreak[,-c(2:4, 6:19, 23:26, 28, 29, 51:65)]
-InsFromBreak$percent= (InsFromBreak$READS.y/sum(InsFromBreak$READS.y))*100
-write.csv(InsFromBreak, paste(outdir, "/", "table_outputs/", plasmid, "_insertion_resection_data.csv", sep=""))
-InsFromBreakMean=sum(InsFromBreak$RM_to_break*InsFromBreak$READS.y)/sum(InsFromBreak$READS.y)
-
-#----------------Insertion Resection - Plot - Side-----------
-InsertionResectionPlotSide = ggplot(InsFromBreak)+
-  geom_bar(aes(x=RM_to_break, y=percent, color=SIDE), position="stack", stat="identity", fill="grey50") +
-  theme_bw()+
-  geom_vline(aes(xintercept = InsFromBreakMean), colour="blue", size=0.75,linetype = "longdash")+
-  #geom_vline(aes(xintercept = median), colour="red", size=0.75,linetype = "longdash",data=distMedian)+
-  scale_y_continuous(name = "Percent Insertions (%)")+  
-  scale_x_continuous(name="Resection/Unwinding Required for SD-MMEJ Action (bp)",
-                     breaks = seq(0, max(InsFromBreak$RM_to_break), by = 2))+
-  theme(axis.text.x=element_text(size=10, face="bold"),
-        axis.text.y=element_text(size=10, face="bold"),
-        axis.title.x=element_text(size=12, face="bold"),
-        axis.title.y=element_text(size=12, face="bold"))+
-  theme(strip.text.x = element_text(size=10, face="bold"),
-        strip.text.y = element_text(size=10, face="bold"))
-InsertionResectionPlotSide
-pdf(paste(outdir, "/", "plots/", plasmid, "_Insertion_Resection_Plot_Side.pdf", sep=""), height = 5, width = 10)
-InsertionResectionPlotSide
-dev.off()
-
-#----------------Insertion Resections - Plot - Mechanism-----------
-InsertionResectionPlotMechanism = ggplot(InsFromBreak)+
-  geom_bar(aes(x=RM_to_break, y=percent, color=mechanism), position="stack", stat="identity", fill="grey50") +
-  theme_bw()+
-  geom_vline(aes(xintercept = InsFromBreakMean), colour="blue", size=0.75,linetype = "longdash")+
-  #geom_vline(aes(xintercept = median), colour="red", size=0.75,linetype = "longdash",data=distMedian)+
-  scale_y_continuous(name = "Percent Insertions (%)")+  
-  scale_x_continuous(name="Resection/Unwinding Required for SD-MMEJ Action (bp)",
-                     breaks = seq(0, max(InsFromBreak$RM_to_break), by = 2))+
-  theme(axis.text.x=element_text(size=10, face="bold"),
-        axis.text.y=element_text(size=10, face="bold"),
-        axis.title.x=element_text(size=12, face="bold"),
-        axis.title.y=element_text(size=12, face="bold"))+
-  theme(strip.text.x = element_text(size=10, face="bold"),
-        strip.text.y = element_text(size=10, face="bold"))
-InsertionResectionPlotMechanism
-pdf(paste(outdir, "/", "plots/", plasmid, "_Insertion_Resection_Plot_Mechanism.pdf", sep=""), height = 5, width = 10)
-InsertionResectionPlotMechanism
-dev.off()
-
-#----------------Insertion Flap Plot - Data Manipulation-----------------------------------
-InsFlap=InsRepeatMotif
-InsFlap$LeftFlap = InsFlap$left_del+0.5
-InsFlap$RightFlap = InsFlap$RIGHT_DEL+0.5
-InsFlap$FlapID = paste(InsFlap$LeftFlap, InsFlap$RightFlap, InsFlap$mechanism)
-InsFlapAggr=aggregate(READS.y~FlapID, data=InsFlap,sum)
-InsFlapTable=as.data.frame(table(InsFlap$FlapID))
-InsFlapAggr=merge(InsFlapAggr, InsFlapTable, by.x="FlapID", by.y="Var1")
-InsFlap=merge(InsFlapAggr, InsFlap, by="FlapID")
-InsFlap=InsFlap[!duplicated(InsFlap$FlapID),]
-colnames(InsFlap)[2]= "READS"
-InsFlap$percent_flap = InsFlap$READS/(sum(InsFlap$READS))*100
-
-#----------------Insetion Flap Plot - Plot-----------------------------------
-rect_left <- c(43.5,53.5,63.5,73.5,83.5,93.5,103.5,113.5,123.5,133.5,143.5,153.5,163.5,173.5,183.5,193.5,203.5)
-InsFlapPlotBreaks = min(InsFlap$LeftFlap-1.5):max(InsFlap$RightFlap+1.5)
-InsFlapPlotLabel = dput(as.character(referenceSplit[InsFlapPlotBreaks]))
-InsFlapPlot <- ggplot()+
-  geom_boxplot(data=InsFlap, aes(x=motif_ID, ymin = LeftFlap, lower = LeftFlap, middle = LeftFlap, 
-                                        upper = RightFlap, ymax = RightFlap,fill=percent_flap, linetype=mechanism),
-               colour="white", stat = "identity",width=.8,lwd=.5) + coord_flip()+scale_linetype_manual(values=c("solid", "dashed","dotted"),guide="none")+
-  scale_fill_gradientn(colours = c("red","yellow","green","lightblue","darkblue"),values=c(1.0,0.8,0.6,0.4,0.2,0),
-                       guide_legend(title="% Deletion From\nSingle Step\nInsertion Events"),limits=c(0,max(InsFlap$percent_flap+1.5)))+scale_y_continuous(limits=c(min(InsFlap$LeftFlap-1.5),max(InsFlap$RightFlap+1.5)),
-                                                                                                               breaks=InsFlapPlotBreaks,
-                                                                                                               labels = InsFlapPlotLabel,
-                                                                                                               name = "Nucleotide",expand=c(0,0))+theme_classic(base_size = 10)+theme(legend.text=element_text(size=8,face="bold"),
-                                                                                                                                                                                      axis.text.y= element_blank(),axis.title.y=element_blank(),axis.text.x= element_text(face="bold"),axis.title.x=element_text(face="bold"),
-                                                                                                                                                                                      axis.ticks=element_blank(),
-                                                                                                                                                                                      panel.border = element_rect(colour = "black", fill=NA, size=1))+guides(guide_legend(title.theme = element_text(size=8, face="bold", angle=0),
-                                                                                                                                                                                                                                                                          label.theme=element_text(size=8, face="bold", angle=0)))+geom_rect(data=rectangles, aes(ymin=as.numeric(xmin), 
-                                                                                                                                                                                                                                                                                                                                                                  ymax=as.numeric(xmax), xmin=ymin, xmax=ymax),fill="grey", alpha=0.4, colour=NA)+
-  geom_boxplot(data=InsFlap, aes(x=motif_ID, ymin = LeftFlap, lower = LeftFlap, middle = LeftFlap, 
-                                        upper = RightFlap, ymax = RightFlap,fill=percent_flap, linetype=mechanism), colour="black",stat = "identity",
-               width=.8,lwd=.5)+ geom_hline(yintercept = BreakPointFromLeft+0.5, colour="red", size=0.75)
-
-InsFlapPlot
-pdf(paste(outdir, "/", "plots/", plasmid, "_Insertion_Flap_Plot.pdf", sep=""), height = 5, width = 10)
-InsFlapPlot
-dev.off()
-
-#----------------Insertion Repeat Motif by Side - Plot---------------
-InsSide = InsRepeatMotif
-InsSidePlot = ggplot(InsSide)+
-  geom_bar(aes(x=SIDE, y=percent_insertion, color=mechanism), position="stack", stat="identity", fill="grey50") +
-  theme_bw()+
-  scale_y_continuous(name = "Percent Usage (%)")+  
-  scale_x_discrete(name="Side")+
-  theme(axis.text.x=element_text(size=10, face="bold"),
-        axis.text.y=element_text(size=10, face="bold"),
-        axis.title.x=element_text(size=12, face="bold"),
-        axis.title.y=element_text(size=12, face="bold"))+
-  theme(strip.text.x = element_text(size=10, face="bold"),
-        strip.text.y = element_text(size=10, face="bold"))
-InsSidePlot
-pdf(paste(outdir, "/", "plots/", plasmid, "_Insertion_Side_Usage_Plot.pdf", sep=""), height = 5, width = 10)
-InsSidePlot
-dev.off()
-
 #----------------Deletion Repeat Motif Plot - Data Manipulation-------------------
 SampleID = as.data.frame(cbind(del[,2], del[,5]))
 colnames(SampleID)=c("Sample.ID", "RECONSTRUCTED_SEQ")
