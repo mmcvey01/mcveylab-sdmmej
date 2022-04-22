@@ -140,6 +140,19 @@ InsertsComplex$CLASS = "Insertion"
 # try( {InsertsComplex$REPAIR_TYPE = "InDel"}, silent=TRUE)
 # try( {InsertsComplex$CLASS = "Insertion"}, silent=TRUE)
 
+#added this next if statement, this leads to the "all" data frame getting created
+#if there are insertions, it runs as normal, if not a data frame containing the two extra columns that couldn't get added
+#gets created and then combined with InsertsComplex
+if (nrow(InsertsComplex)>0) {
+  InsertsComplex$REPAIR_TYPE = "InDel"
+  InsertsComplex$CLASS = "Insertion"
+}else{
+  ExtraColumns = data.frame(matrix(nrow = 0, ncol = 2))
+  ExtraColNames = c("REPAIR_TYPE", "CLASS")  
+  colnames(ExtraColumns)=ExtraColNames
+  InsertsComplex = cbind(InsertsComplex, ExtraColumns)  
+}
+
 InsertsComplex$left_del = InsComMerge$left_del 
 InsertsComplex$right_del = InsComMerge$right_del
 InsertsComplex$CONSISTENCY = InsComMerge$consistency
@@ -1537,6 +1550,18 @@ head(AllInaccurate)
 
 
 colnames(PercentOfInaccurate)[3]="percent_inaccurate"
+
+#adding if statements to address InaccurateRepairPlot error I was expecting to happen when a class of repair events don't exist
+#if no insertions are present but both classes of deletions are, adds in InDels row with value of 0 for percent
+if (nrow(AllRepeats)==0 & nrow(PercentOfInaccurate)==2){
+  IndelExtra = data.frame(matrix(nrow = 1, ncol = 3))
+  colnames(IndelExtra)=colnames(PercentOfInaccurate)
+  IndelExtra$REPAIR_TYPE="InDel"
+  IndelExtra$plasmid=plasmid
+  IndelExtra$percent_inaccurate=0
+  PercentOfInaccurate=rbind(PercentOfInaccurate, IndelExtra)
+}
+
 PercentInaccurate = aggregate(as.numeric(percent_inaccurate)~plasmid,data=Consistent, sum) #Breaks down percent inaccurate repair that is consistent
 colnames(PercentInaccurate)[2]="percent_inaccurate"
 Indel2 = subset(PercentOfInaccurate, REPAIR_TYPE=="InDel")
@@ -1576,19 +1601,43 @@ ConsistentRepairType = as.data.frame(ConsistentRepairType)
 ConsistentRepairType$REPAIR_TYPE = c("InDel", "MHJ", "ABJ")
 ConsistentRepairType$percent_consistent = c(InDelPerConsistent, MHJPerConsistent, ABJPerConsistent)
 
+#adding one more plot that I forgot wasn't in the version on git
+AllRepair = data.frame(matrix(ncol = 0, nrow=6))
+rownames(AllRepair)=c("SDMMEJ InDels", "Other InDels", "Consistent MHJ", "MMEJ", "Consistent ABJ", "NHEJ")
+AllRepair$Reads=c(InDelTrueReads, InDelFalseReads, MHJTrueReads, MHJFalseReads, ABJTrueReads, ABJFalseReads)
+AllRepair$Percent = AllRepair$Reads/sum(AllRepair$Reads)*100
+AllRepair$Type = c("SDMMEJ InDels", "Other InDels", "Consistent MHJ", "MMEJ", "Consistent ABJ", "NHEJ")
+AllRepair$Type = factor(AllRepair$Type, levels = c("SDMMEJ InDels", "Other InDels", "Consistent MHJ", "MMEJ", "Consistent ABJ", "NHEJ"))
+write.csv(AllRepair, paste(outdir, "/", "table_outputs/", plasmid, "_All_Repair_data.csv", sep=""))
 
 #----------------Consistency and Inaccurate Repair Plots------------------------
-InaccurateRepairPlot = ggplot(PercentOfInaccurate, aes(x=plasmid, y=percent_inaccurate, fill=REPAIR_TYPE, label=REPAIR_TYPE))+ 
-  geom_bar(position="stack", stat="identity", colour="black")+
-  theme_classic(base_size = 9)+ geom_text(position = position_stack(vjust=0.5), color=c("white","black","black"))+
-  scale_fill_grey(start=0.0, end=1) +guides(fill="none")+
-  scale_y_continuous(name = "% Inaccurate Reads", labels=c("0","25","50","75","100"), expand=c(0,0),limits=c(0,105),breaks=c(0,25,50,75,100))+
-  scale_x_discrete(name = "plasmid")+
-  theme(axis.text.x=element_text(size=9, face="bold"),axis.text.y=element_text(size=9, face="bold"),axis.title.x=element_text(size=10, face="bold"),
-  axis.title.y=element_text(size=10, face="bold"))
-InaccurateRepairPlot
-pdf(paste(outdir, "/", "plots/", plasmid, "_Inaccurate_Repair_Plot_All.pdf",sep=""), width=5)
-InaccurateRepairPlot
+#this plot only runs if all 3 repair types (InDel, MHJ, ABJ) exist or if ABJ and MHJs exist. 
+#If we only have ABJ or MHJ, this plot is pointless so it gets skipped.
+if (nrow(PercentOfInaccurate)=3) {
+  InaccurateRepairPlot = ggplot(PercentOfInaccurate, aes(x=plasmid, y=percent_inaccurate, fill=REPAIR_TYPE, label=REPAIR_TYPE))+ 
+    geom_bar(position="stack", stat="identity", colour="black")+
+    theme_classic(base_size = 9)+ geom_text(position = position_stack(vjust=0.5), color=c("white","black","black"))+
+    scale_fill_grey(start=0.0, end=1) +guides(fill="none")+
+    scale_y_continuous(name = "% Inaccurate Reads", labels=c("0","25","50","75","100"), expand=c(0,0),limits=c(0,105),breaks=c(0,25,50,75,100))+
+    scale_x_discrete(name = "plasmid")+
+    theme(axis.text.x=element_text(size=9, face="bold"),axis.text.y=element_text(size=9, face="bold"),axis.title.x=element_text(size=10, face="bold"),
+          axis.title.y=element_text(size=10, face="bold"))
+  InaccurateRepairPlot
+  pdf(paste(outdir, "/", "plots/", plasmid, "_Inaccurate_Repair_Plot_All.pdf",sep=""), width=5)
+  InaccurateRepairPlot
+  dev.off()
+}
+
+#this is the extra plot I mentioned above
+AllRepairPlot = ggplot(AllRepair)+geom_bar(aes(x=Type, y=Percent), width = 0.75, stat="identity", color="black", fill="black")+
+  ylab("% of Inaccurate Reads")+xlab("Repair Type")+theme_classic(base_size = 9)+
+  theme(axis.text.x=element_text(size=9, face="bold"),
+        axis.text.y=element_text(size=9, face="bold"),
+        axis.title.x=element_text(size=10, face="bold"),
+        axis.title.y=element_text(size=10, face="bold"))
+AllRepairPlot
+pdf(paste(outdir, "/", "plots/", plasmid, "_All_Repair_Plot.pdf", sep=""), width=10) # make sure I did this correct, I think it is
+AllRepairPlot
 dev.off()
 
 ConsistencyPlot = ggplot(PercentInaccurate, aes(fill=plasmid))+ 
