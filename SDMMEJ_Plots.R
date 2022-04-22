@@ -41,7 +41,7 @@ ins_consistent_colnames=c("ID","DR_START","DR_END","RC_START","RC_END","consiste
 if (file.exists(insertion_file)){
   insertionsConsistent = read.csv(insertion_file, row.names=1)
 }else{
-  insertionsConsistent = data.frame(matrix(nrow=0, ncol=length(ins_consistent_colnames)))
+  insertionsConsistent = data.frame(matrix(nrow=1, ncol=length(ins_consistent_colnames)))
   colnames(insertionsConsistent) = ins_consistent_colnames
 }
 complex_file=paste0(outdir, "/", plasmid, "_complex_insertion_consistency2.csv")
@@ -50,7 +50,7 @@ if (file.exists(complex_file)){
   complexConsistent = read.csv(complex_file, row.names = 1)
   
 }else{
-  complexConsistent = data.frame(matrix(nrow=0, ncol=length(ins_consistent_colnames)))
+  complexConsistent = data.frame(matrix(nrow=1, ncol=length(ins_consistent_colnames)))
   colnames(complexConsistent) = ins_consistent_colnames
   
 }
@@ -65,7 +65,7 @@ if(file.exists(del_file_1)){
 }else{
   colnames=c("Sample ID","Deletion Length","Repair Type","Mechanism","Motif to Break","Motif to Deletion","P1 to Break","P1 to Deletion","P2 to Break","P2 to Deletion","P1 to P2","Motif Length","Break Side",
              "Deletion to MH","Motif Sequence")
-  del=data.frame(matrix(nrow=0, ncol=length(colnames)))
+  del=data.frame(matrix(nrow=1, ncol=length(colnames)))
   colnames(del) = colnames
 }
 
@@ -73,7 +73,7 @@ if(file.exists(del_file_2)){
   DeletionData = read.csv(del_file_2, header=T, sep="\t")
 }else{
   colnames=c("PLASMID","ID","GENOTYPE","REPAIR_TYPE","SEQ","TOTAL_DELETION","LEFT_DEL_INDEX","RIGHT_DEL_INDEX","CONSISTENCY")
-  DeletionData = data.frame(matrix(nrow=0, ncol=length(colnames)))
+  DeletionData = data.frame(matrix(nrow=1, ncol=length(colnames)))
   colnames(DeletionData) = colnames
 }
 
@@ -101,6 +101,7 @@ CombinedCurated = rbind(accurate,inaccurate)
 
 #reorganizing data by repair event classification
 deletions = subset(CombinedCurated, CLASS_final=="deletion")
+head(deletions)
 complex = subset(CombinedCurated, CLASS_final=="complex")
 insertions = subset(CombinedCurated, CLASS_final=="insertion")
 exact = subset(CombinedCurated, CLASS_final=="exact")
@@ -114,7 +115,9 @@ InsComConsistent = rbind(insertionsConsistent, complexConsistent)
 InsComConsistent$RIGHT_DEL <- lengthRef -(nchar(as.character(InsComConsistent$RECONSTRUCTED_SEQ))-InsComConsistent$right_del+1) 
 InsComMerge = merge(InsComConsistent, complexInsertion, "RECONSTRUCTED_SEQ", all=FALSE)
 
-try( {del$SEQ = toupper(del$SEQ)}, silent=TRUE)
+# these tables can be empty
+#try( {del$SEQ = toupper(del$SEQ)}, silent=TRUE)
+del$SEQ = toupper(del$SEQ)
 names(del)[names(del)=="SEQ"] = "RECONSTRUCTED_SEQ"
 
 deletionsMerged = merge(del, deletions, "RECONSTRUCTED_SEQ", all=FALSE )
@@ -131,8 +134,11 @@ InsertsComplex$percent = InsComMerge$percent
 InsertsComplex$percent_inaccurate = InsComMerge$percent_inaccurate
 
 # these tables can be empty
-try( {InsertsComplex$REPAIR_TYPE = "InDel"}, silent=TRUE)
-try( {InsertsComplex$CLASS = "Insertion"}, silent=TRUE)
+InsertsComplex$REPAIR_TYPE = "InDel"
+InsertsComplex$CLASS = "Insertion"
+
+# try( {InsertsComplex$REPAIR_TYPE = "InDel"}, silent=TRUE)
+# try( {InsertsComplex$CLASS = "Insertion"}, silent=TRUE)
 
 InsertsComplex$left_del = InsComMerge$left_del 
 InsertsComplex$right_del = InsComMerge$right_del
@@ -151,8 +157,16 @@ del1$percent_inaccurate <- deletionsMerged$percent_inaccurate
 del1$REPAIR_TYPE <- deletionsMerged$REPAIR_TYPE
 del1$CLASS = deletionsMerged$CLASS_final
 deletions <- cbind(del1, deletionsMerged[,7:9])
+names(deletions)
+names(InsertsComplex)
+
+## can't do this if one is empty, there aren't the same colnames
 names(deletions) <- names(InsertsComplex)
+
+
 all <- rbind(InsertsComplex,deletions)
+view(all)
+
 all$plasmid = plasmid
 
 write.csv(all,paste(outdir, "/", "table_outputs/",plasmid,"_all_SD-MMEJ_consistency.csv", sep=""))
@@ -886,306 +900,625 @@ if (nrow(AllRepeats)>0){
   pdf(paste(outdir, "/", "plots/", plasmid, "_Insertion_Side_Usage_Plot.pdf", sep=""), height = 5, width = 10)
   InsSidePlot
   dev.off()
+  
+  ## Second set of insertion plots
+  #--------------------Primer Distance and Length - Data Manipulation--------------------------
+  # csv input - _break.csv exported at end of "Combining Direct Repeat and Reverse Complement Repeat" Section
+  #InsBreaks = read.csv(paste(outdir, "/", "table_outputs/", plasmid, "_break.csv", sep=""), row.names = 1)
+  InsBreaks = jxn3
+  InsBreaks$PG = plasmid
+  no_trans = subset(InsBreaks, is_trans=="no")
+  #trans = subset(InsBreaks, is_trans=="trans")
+  right = subset(no_trans, SIDE=="RIGHT")
+  left = subset(no_trans, SIDE=="LEFT")
+  right$p1_p2 = right$p1_start-(right$p2_end+1)
+  left$p1_p2 = left$p2_start-(left$p1_end+1)
+  #trans$p1_p2 = 0
+  #dist = rbind(right,left,trans)
+  dist = rbind(right,left)
+  dist.nt = subset(dist, mechanism!="Trans")
+  dist.nt = subset(dist.nt, !(is.na(dist.nt["p1_length"])))
+  lengthMean = data.frame(plasmid=plasmid, mean(dist.nt$p1_length))
+  colnames(lengthMean)[2]="mean"
+  lengthMedian = data.frame(plasmid=plasmid, median(dist.nt$p1_length))
+  colnames(lengthMedian)[2]="median"
+  dist.nt$p1_p2_abs = abs(dist.nt$p1_p2)
+  distMean = data.frame(plasmid=plasmid, mean(dist.nt$p1_p2_abs))
+  colnames(distMean)[2] = "mean"
+  distMedian = data.frame(plasmid=plasmid, median(dist.nt$p1_p2_abs))
+  colnames(distMedian)[2] = "median"
+  len.mean = data.frame(plasmid=plasmid, mean(dist.nt$mh_length))
+  colnames(len.mean)[2] = "mean"
+  len.median = data.frame(plasmid=plasmid, median(dist.nt$mh_length))
+  colnames(len.median)[2] = "median"
+  
+  PrimerData = jxn3[,c(1,2,33,31,32,40,41,23)]
+  colnames(PrimerData)[3]="Primer_Length"
+  PrimerDataLeft=subset(PrimerData, SIDE=="LEFT")
+  PrimerDataRight=subset(PrimerData, SIDE=="RIGHT")
+  PrimerDataLeft$Distance=PrimerDataLeft$p2_start-1-PrimerDataLeft$p1_end
+  PrimerDataRight$Distance=PrimerDataRight$p1_start-1-PrimerDataRight$p2_end
+  PrimerData=rbind(PrimerDataLeft, PrimerDataRight)
+  
+  PrimerLength = aggregate(READS~Primer_Length, data=PrimerData, sum)
+  PrimerLength$percent=PrimerLength$READS/sum(PrimerLength$READS)*100
+  write.csv(PrimerLength, paste(outdir, "/", "table_outputs/", plasmid, "_Primer_Length.csv", sep=""))
+  
+  PrimerDistance = aggregate(READS~Distance, data=PrimerData, sum)
+  PrimerDistance$percent = PrimerDistance$READS/sum(PrimerDistance$READS)*100
+  write.csv(PrimerDistance, paste(outdir, "/", "table_outputs/", plasmid, "_Primer_Distance.csv", sep=""))
+  
+  #--------------------Primer Distance Plot - Inaccurate Reads--------------------------
+  PrimerDistancePlotInaccurateReads = ggplot(dist.nt)+
+    geom_bar(aes(x=p1_p2_abs, y=as.numeric(percent_inaccurate), color=mechanism), position="stack", stat="identity", fill="grey50") +
+    theme_bw()+
+    #facet_wrap(~PG, scales="free_y")+
+    geom_vline(aes(xintercept = mean), colour="blue", size=0.75,linetype = "longdash",data=distMean)+
+    geom_vline(aes(xintercept = median), colour="red", size=0.75,linetype = "longdash",data=distMedian)+
+    scale_y_continuous(name = "Percent Inaccurate Reads")+  
+    scale_x_continuous(name="Distance between Primer Pairs (bp)",
+                       breaks = seq(0, 60, by = 2))+
+    theme(axis.text.x=element_text(size=10, face="bold"),
+          axis.text.y=element_text(size=10, face="bold"),
+          axis.title.x=element_text(size=12, face="bold"),
+          axis.title.y=element_text(size=12, face="bold"))+
+    theme(strip.text.x = element_text(size=10, face="bold"),
+          strip.text.y = element_text(size=10, face="bold"))
+  PrimerDistancePlotInaccurateReads
+  pdf(paste(outdir, "/", "plots/", plasmid, "_Primer_Distance_Plot_Inaccurate_Reads.pdf", sep=""), width=15)
+  PrimerDistancePlotInaccurateReads
+  dev.off()
+  
+  #--------------------Primer Distance Plot - Insertion Events--------------------------
+  PrimerDistancePlotInsertion = ggplot(dist.nt)+
+    geom_bar(aes(x=p1_p2_abs, y=percent_insertion_jxn, color=mechanism), position="stack", stat="identity", fill="grey50") +
+    theme_bw()+
+    #facet_wrap(~PG, scales="free_y")+
+    geom_vline(aes(xintercept = mean), colour="blue", size=0.75,linetype = "longdash",data=distMean)+
+    geom_vline(aes(xintercept = median), colour="red", size=0.75,linetype = "longdash",data=distMedian)+
+    scale_y_continuous(name = "Percent Insertion Events")+  
+    scale_x_continuous(name="Distance between Primer Pairs (bp)",
+                       breaks = seq(0, 60, by = 2))+
+    theme(axis.text.x=element_text(size=10, face="bold"),
+          axis.text.y=element_text(size=10, face="bold"),
+          axis.title.x=element_text(size=12, face="bold"),
+          axis.title.y=element_text(size=12, face="bold"))+
+    theme(strip.text.x = element_text(size=10, face="bold"),
+          strip.text.y = element_text(size=10, face="bold"))
+  PrimerDistancePlotInsertion
+  pdf(paste(outdir, "/", "plots/", plasmid, "_Primer_Distance_Plot_Insertion.pdf", sep=""), width=15)
+  PrimerDistancePlotInsertion
+  dev.off()
+  
+  #--------------------Primer Length Plots - Insertion Events--------------------------
+  PrimerLengthPlotInsertion <- ggplot(dist.nt)+
+    geom_bar(aes(x=p2_length, y=percent_insertion_jxn, color=mechanism), position="stack", stat="identity", fill="grey50") +
+    theme_bw()+
+    #facet_wrap(~PG, scales="free_y")+
+    geom_vline(aes(xintercept = mean), colour="blue", size=0.75,linetype = "longdash",data=lengthMean)+
+    geom_vline(aes(xintercept = median), colour="red", size=0.75,linetype = "longdash",data=lengthMedian)+
+    scale_y_continuous(name = "Percent Insertion Events")+  
+    scale_x_continuous(name="Primer Length (bp)",
+                       breaks = seq(1, 20, by = 1))+
+    theme(axis.text.x=element_text(size=10, face="bold"),
+          axis.text.y=element_text(size=10, face="bold"),
+          axis.title.x=element_text(size=12, face="bold"),
+          axis.title.y=element_text(size=12, face="bold"))+
+    theme(strip.text.x = element_text(size=10, face="bold"),
+          strip.text.y = element_text(size=10, face="bold"))
+  PrimerLengthPlotInsertion
+  pdf(paste(outdir, "/", "plots/", plasmid, "_Primer_Length_Plot_Insertion.pdf", sep=""), width=15)
+  PrimerLengthPlotInsertion
+  dev.off()
+  
+  ## Third set of insertion plots
+  
+  #--------------------------Insertion Length Plot - All----------------
+  AllInsertions = subset(all, CLASS == "Insertion")
+  ReadsAggInsertionLength = aggregate(READS~INSERTION_LENGTH + CONSISTENCY, data=AllInsertions, sum)
+  ReadsAggInsertionLength$Percent_Insertion = ReadsAggInsertionLength$READS/ sum(ReadsAggInsertionLength$READS)*100
+  ReadsAggInsertionLength$READSxLength = ReadsAggInsertionLength$READS * ReadsAggInsertionLength$INSERTION_LENGTH
+  AllInsLenMean = sum(ReadsAggInsertionLength$READSxLength)/sum(ReadsAggInsertionLength$READS)
+  
+  ReadsAggInsertionLength = ReadsAggInsertionLength[-c(24),]
+  
+  len.median = data.frame(plasmid="Iw7_Flex", median(dist.nt$mh_length))
+  
+  AllInsertionLengthPlot = ggplot(ReadsAggInsertionLength) + geom_bar(aes(x=INSERTION_LENGTH, y=Percent_Insertion, fill= CONSISTENCY), stat="identity", colour="black")+
+    theme_bw()+scale_y_continuous(name = "Percent of Insertions")+ scale_x_continuous(name = "Insertion Length (bp)", breaks = seq(0, max(ReadsAggInsertionLength$INSERTION_LENGTH+1), by = 2))+
+    #facet_wrap(~"WT", scales="free_y")+
+    theme(plot.title = element_text(color="grey28"),
+          axis.text.x=element_text(size=10, face="bold"),
+          axis.text.y=element_text(size=10, face="bold"),
+          axis.title.x=element_text(size=12, face="bold"),
+          axis.title.y=element_text(size=12, face="bold"))+
+    theme(strip.text.x = element_text(size=10, face="bold"),
+          strip.text.y = element_text(size=10, face="bold"))+
+    geom_vline(aes(xintercept = AllInsLenMean), colour="blue", size=0.75,linetype = "longdash")
+  #geom_vline(aes(xintercept = AllInsMedian), colour="red", size=0.75,linetype = "longdash")
+  AllInsertionLengthPlot
+  pdf(paste(outdir, "/", "plots/", plasmid, "_Insertion_Length_Plot_All.pdf", sep=""), width = 20)
+  AllInsertionLengthPlot
+  dev.off()
+  
+  #--------------------------Insertion Length Plot - Consistent----------------
+  ConsistentInsertion = subset(all, CLASS == "Insertion" & CONSISTENCY =="TRUE")
+  ConsistentReadsAggInsertionLength = aggregate(READS~INSERTION_LENGTH, data=ConsistentInsertion, sum)
+  ConsistentReadsAggInsertionLength$Percent_Insertion = ConsistentReadsAggInsertionLength$READS / sum(ConsistentReadsAggInsertionLength$READS)*100
+  ConsistentReadsAggInsertionLength$READSxLength = ConsistentReadsAggInsertionLength$READS * ConsistentReadsAggInsertionLength$INSERTION_LENGTH
+  ConsInsLenMean = sum(ConsistentReadsAggInsertionLength$READSxLength)/sum(ConsistentReadsAggInsertionLength$READS)
+  
+  ConsistentInsertionLengthPlot = ggplot(ConsistentReadsAggInsertionLength) + geom_bar(aes(x=INSERTION_LENGTH, y=Percent_Insertion), stat="identity", colour="black", fill="grey50")+
+    theme_bw()+scale_y_continuous(name = "Percent of SD-MMEJ Consistent Insertions")+ scale_x_continuous(name = "Insertion Length (bp)", breaks = seq(1, max(ReadsAggInsertionLength$INSERTION_LENGTH), by = 1))+
+    theme(plot.title = element_text(color="grey28", size=12),
+          axis.text.x=element_text(size=10, face="bold"),
+          axis.text.y=element_text(size=10, face="bold"),
+          axis.title.x=element_text(size=12, face="bold"),
+          axis.title.y=element_text(size=12, face="bold"))+
+    theme(strip.text.x = element_text(size=10, face="bold"),
+          strip.text.y = element_text(size=10, face="bold"))+
+    geom_vline(aes(xintercept = ConsInsLenMean), colour="blue", size=0.75,linetype = "longdash")
+  ConsistentInsertionLengthPlot
+  pdf(paste(outdir, "/", "plots/", plasmid, "_Insertion_Length_Plot_Consistent.pdf", sep=""), width = 15)
+  ConsistentInsertionLengthPlot
+  dev.off()
 }
+
 #----------------Deletion Repeat Motif Plot - Data Manipulation-------------------
-SampleID = as.data.frame(cbind(del[,2], del[,5]))
-colnames(SampleID)=c("Sample.ID", "RECONSTRUCTED_SEQ")
-
-ReconSeq = as.data.frame(sapply(SampleID$RECONSTRUCTED_SEQ, gsub, pattern="-", replacement=""))
-colnames(ReconSeq)[1]="RECONSTRUCTED_SEQ"
-SampleID$RECONSTRUCTED_SEQ=ReconSeq$RECONSTRUCTED_SEQ
-
-DeletionData2 = merge(x= DeletionData, y= SampleID, by.x="Sample.ID", by.y="Sample.ID")
-DeletionData2 = merge(DeletionData2, CombinedCurated, by="RECONSTRUCTED_SEQ", all.x=TRUE)
-DeletionData2$start = ifelse(DeletionData2$Break.Side=="left", (BreakPointFromLeft+1)-DeletionData2$Motif.to.Break,
-        (BreakPointFromLeft+1)+DeletionData2$Motif.to.Break-DeletionData2$Motif.Length)
-DeletionData2$end = ifelse(DeletionData2$Break.Side=="left", BreakPointFromLeft-DeletionData2$Motif.to.Break+DeletionData2$Motif.Length,
-                           (BreakPointFromLeft+DeletionData2$Motif.to.Break))
-DeletionData2$motif_mechID = paste(DeletionData2$start, DeletionData2$end, DeletionData2$Mechanism, sep="-")
-DelAgg = aggregate(READS~motif_mechID, data=DeletionData2, sum)
-DelAggTab = as.data.frame(table(DeletionData2$motif_mechID))
-DelAgg = merge(DelAgg, DelAggTab, by.x="motif_mechID", by.y="Var1")
-DeletionData2 = merge(DelAgg, DeletionData2, by="motif_mechID")
-DeletionData2 = DeletionData2[!duplicated(DeletionData2$motif_mechID),]
-DeletionLeft = subset(DeletionData2, start<BreakPointFromLeft)
-DeletionRight = subset(DeletionData2, start>BreakPointFromLeft)
-DeletionLeft = DeletionLeft[order(DeletionLeft$start),]
-DeletionRight = DeletionRight[order(DeletionRight$start),]
-DeletionLeft$order = paste(10:(9+nrow(DeletionLeft)), "-", sep = "")
-DeletionRight$order = paste(10:(9+nrow(DeletionRight)), "-", sep="")
-DeletionData2 = rbind(DeletionLeft, DeletionRight)
-DeletionData2 = DeletionData2[order(DeletionData2$order, decreasing=TRUE),]
-DeletionData3 = DeletionData2$motif_mechID
-DeletionData2 = arrange(transform(DeletionData2, motif_mechID=factor(motif_mechID, levels=motif_mechID)),motif_mechID)
-DeletionData2$percent_deletion = DeletionData2$READS.x/sum(DeletionData2$READS.x)*100
-DeletionData2$MOTIF_START2 = as.numeric(DeletionData2$start)-0.5
-DeletionData2$MOTIF_END2 = as.numeric(DeletionData2$end)+0.5
-write.csv(DeletionData2, paste(outdir, "/", "table_outputs/", plasmid, "_del_data_for_template_plot.csv", sep=""))
-
-DelMotif = data.frame(x=numeric(), y=numeric(), z=numeric(), w=numeric(), stringsAsFactors = FALSE)
-for(i in 1:nrow(DeletionData2)){
-  g = as.data.frame(DeletionData2[i, 48]:DeletionData2[i,49])
-  DelMotif1 = cbind(DeletionData2[i,1],g,DeletionData2[i,2], DeletionData2[i, 8])
-  DelMotif = rbind(DelMotif, DelMotif1)
+if (nrow(del) > 0){
+  SampleID = as.data.frame(cbind(del[,2], del[,5]))
+  colnames(SampleID)=c("Sample.ID", "RECONSTRUCTED_SEQ")
+  
+  ReconSeq = as.data.frame(sapply(SampleID$RECONSTRUCTED_SEQ, gsub, pattern="-", replacement=""))
+  colnames(ReconSeq)[1]="RECONSTRUCTED_SEQ"
+  SampleID$RECONSTRUCTED_SEQ=ReconSeq$RECONSTRUCTED_SEQ
+  
+  DeletionData2 = merge(x= DeletionData, y= SampleID, by.x="Sample.ID", by.y="Sample.ID")
+  DeletionData2 = merge(DeletionData2, CombinedCurated, by="RECONSTRUCTED_SEQ", all.x=TRUE)
+  DeletionData2$start = ifelse(DeletionData2$Break.Side=="left", (BreakPointFromLeft+1)-DeletionData2$Motif.to.Break,
+                               (BreakPointFromLeft+1)+DeletionData2$Motif.to.Break-DeletionData2$Motif.Length)
+  DeletionData2$end = ifelse(DeletionData2$Break.Side=="left", BreakPointFromLeft-DeletionData2$Motif.to.Break+DeletionData2$Motif.Length,
+                             (BreakPointFromLeft+DeletionData2$Motif.to.Break))
+  DeletionData2$motif_mechID = paste(DeletionData2$start, DeletionData2$end, DeletionData2$Mechanism, sep="-")
+  DelAgg = aggregate(READS~motif_mechID, data=DeletionData2, sum)
+  DelAggTab = as.data.frame(table(DeletionData2$motif_mechID))
+  DelAgg = merge(DelAgg, DelAggTab, by.x="motif_mechID", by.y="Var1")
+  DeletionData2 = merge(DelAgg, DeletionData2, by="motif_mechID")
+  DeletionData2 = DeletionData2[!duplicated(DeletionData2$motif_mechID),]
+  DeletionLeft = subset(DeletionData2, start<BreakPointFromLeft)
+  DeletionRight = subset(DeletionData2, start>BreakPointFromLeft)
+  DeletionLeft = DeletionLeft[order(DeletionLeft$start),]
+  DeletionRight = DeletionRight[order(DeletionRight$start),]
+  DeletionLeft$order = paste(10:(9+nrow(DeletionLeft)), "-", sep = "")
+  DeletionRight$order = paste(10:(9+nrow(DeletionRight)), "-", sep="")
+  DeletionData2 = rbind(DeletionLeft, DeletionRight)
+  DeletionData2 = DeletionData2[order(DeletionData2$order, decreasing=TRUE),]
+  DeletionData3 = DeletionData2$motif_mechID
+  DeletionData2 = arrange(transform(DeletionData2, motif_mechID=factor(motif_mechID, levels=motif_mechID)),motif_mechID)
+  DeletionData2$percent_deletion = DeletionData2$READS.x/sum(DeletionData2$READS.x)*100
+  DeletionData2$MOTIF_START2 = as.numeric(DeletionData2$start)-0.5
+  DeletionData2$MOTIF_END2 = as.numeric(DeletionData2$end)+0.5
+  write.csv(DeletionData2, paste(outdir, "/", "table_outputs/", plasmid, "_del_data_for_template_plot.csv", sep=""))
+  
+  DelMotif = data.frame(x=numeric(), y=numeric(), z=numeric(), w=numeric(), stringsAsFactors = FALSE)
+  for(i in 1:nrow(DeletionData2)){
+    g = as.data.frame(DeletionData2[i, 48]:DeletionData2[i,49])
+    DelMotif1 = cbind(DeletionData2[i,1],g,DeletionData2[i,2], DeletionData2[i, 8])
+    DelMotif = rbind(DelMotif, DelMotif1)
+  }
+  colnames(DelMotif) = c("motif_mechID", "temp_coord","READS","mechanism")
+  DelSnapBack = subset(DelMotif, mechanism=="snap-back")
+  DelLoopOut = subset(DelMotif, mechanism=="loop-out")
+  DelSnapBack = aggregate(READS~temp_coord, data=DelSnapBack, sum)
+  DelSnapBack$mechanism = "Snap-back"
+  DelLoopOut = aggregate(READS~temp_coord, data=DelLoopOut, sum)
+  DelLoopOut$mechanism = "Loop-out"
+  DelMotif2 = rbind(DelSnapBack, DelLoopOut)
+  DelMotif2$x = "1"
+  DelMotif2$percent_deletion = DelMotif2$READS/sum(DelMotif2$READS)*100
+  DelMotif2$temp_coord2 = DelMotif2$temp_coord-0.5
+  write.csv(DelMotif2, paste(outdir, "/", "table_outputs/", plasmid, "_del_data_for_temp_plot_mech.csv", sep=""))
+  
+  DelMotif = aggregate(READS~temp_coord, data=DelMotif, sum)
+  DelMotif$x = plasmid
+  DelMotif$percent_deletion = DelMotif$READS/sum(DelMotif$READS)*100
+  DelMotif$temp_coord2 = DelMotif$temp_coord-0.5
+  write.csv(DelMotif, paste(outdir, "/", "table_outputs/", plasmid, "_del_data_for_temp_plot.csv", sep=""))
+  
+  #----------------Deletion Repeat Motif Plot-------------------
+  DeletionData2 = arrange(transform(DeletionData2, motif_mechID=factor(motif_mechID, levels = motif_mechID)), motif_mechID)
+  
+  DelMotifPlotBreaks = min(DeletionData2$MOTIF_START2-1.5):max(DeletionData2$MOTIF_END2+2.5)
+  DelMotifPlotLabel = dput(as.character(referenceSplit[DelMotifPlotBreaks]))
+  rect_left <- c(33.5,43.5,53.5,63.5,73.5,83.5,93.5,103.5,113.5,123.5,133.5,143.5,153.5,163.5,173.5,183.5,193.5,203.5,213.5,223.5)
+  rectangles <- data.frame(
+    xmin = rect_left,
+    xmax = rect_left + 5,
+    ymin = -Inf,
+    ymax = Inf
+  )
+  DelMotifPlot = ggplot()+
+    geom_boxplot(data=DeletionData2, aes(x=motif_mechID, ymin = MOTIF_START2, lower = MOTIF_START2, middle = MOTIF_START2, 
+                                         upper = MOTIF_END2, ymax = MOTIF_END2,
+                                         fill=percent_deletion, linetype=Mechanism),
+                 colour="white",
+                 stat = "identity",
+                 width=.8,  
+                 lwd=.5) + 
+    coord_flip()+
+    scale_linetype_manual(values=c("solid", "dashed","dotted"),guide=FALSE)+
+    scale_fill_gradientn(colours = c("red","yellow","green","lightblue","darkblue"),
+                         values=c(1.0,0.8,0.6,0.4,0.2,0),
+                         limits=c(0,max(DeletionData2$percent_deletion+1.5)),
+                         guide_legend(title="% SD-MMEJ\nConsistent\nDeletion Reads"))+
+    scale_y_continuous(limits=c(min(DeletionData2$MOTIF_START2-1.5),max(DeletionData2$MOTIF_END2+1.5)),
+                       breaks=DelMotifPlotBreaks,
+                       labels = DelMotifPlotLabel,
+                       name = "Nucleotide",
+                       expand=c(0,0))+
+    theme_classic(base_size = 10)+
+    theme(legend.text=element_text(size=8,face="bold"),
+          axis.text.y= element_blank(),
+          axis.title.y=element_blank(),
+          axis.text.x= element_text(face="bold"),
+          axis.title.x=element_text(face="bold"),
+          axis.ticks=element_blank(),
+          legend.key.size=unit(0.42,"cm"),
+          panel.border = element_rect(colour = "black", fill=NA, size=1))+
+    guides(guide_legend(title.theme = element_text(size=4, face="bold", angle=0),
+                        label.theme=element_text(size=8, face="bold", angle=0)))+
+    geom_rect(data=rectangles, aes(ymin=as.numeric(xmin), ymax=as.numeric(xmax), xmin=ymin, xmax=ymax),
+              fill="grey", alpha=0.8, colour=NA)+
+    geom_boxplot(data=DeletionData2, aes(x=motif_mechID, ymin = MOTIF_START2, lower = MOTIF_START2, middle = MOTIF_START2, 
+                                         upper = MOTIF_END2, ymax = MOTIF_END2,
+                                         fill=percent_deletion, linetype=Mechanism),
+                 colour="black",
+                 stat = "identity",
+                 width=.8, 
+                 lwd=.5)+  
+    geom_hline(yintercept = BreakPointFromLeft+0.5, colour="red", size=0.75)
+  DelMotifPlot
+  pdf(paste(outdir, "/", "plots/", plasmid, "_Deletion_Repeat_Motif.pdf", sep=""), height = 7, width = 10)
+  DelMotifPlot
+  dev.off()
+  
+  #----------------Deletion Flap Plot - Data Manipulation-----------------------------------
+  DelFlap = DeletionData2[,-c(1,3,9:16, 18, 20:27, 36, 39:43, 46,47)]
+  DelFlap = subset(DelFlap, TOTAL_DELETION !="NA")
+  DelFlap$LeftFlap = BreakPointFromLeft+0.5+DelFlap$DELETION_FROM_LEFT
+  DelFlap$RightFlap = BreakPointFromLeft+0.5-DelFlap$DELETION_FROM_RIGHT
+  DelFlap$FlapID = paste(DelFlap$LeftFlap, DelFlap$RightFlap, DelFlap$Mechanism, DelFlap$Repair.Type)
+  DelFlapAggr=aggregate(READS.x~FlapID, data=DelFlap,sum)
+  DelFlapTable=as.data.frame(table(DelFlap$FlapID))
+  DelFlapAggr=merge(DelFlapAggr, DelFlapTable, by.x="FlapID", by.y="Var1")
+  DelFlap=merge(DelFlapAggr, DelFlap, by="FlapID")
+  DelFlap=DelFlap[!duplicated(DelFlap$FlapID),]
+  colnames(DelFlap)[2]="READS"
+  DelFlapMHJ = subset(DelFlap, Repair.Type=="MHJ")
+  DelFlapABJ = subset(DelFlap, Repair.Type=="ABJ")
+  DelFlapMHJ$percent_flap = DelFlapMHJ$READS/(sum(DelFlapMHJ$READS))*100
+  DelFlapABJ$percent_flap = DelFlapABJ$READS/(sum(DelFlapABJ$READS))*100
+  
+  #----------------Deletion Flap Plot - MHJ Plot-----------------------------------
+  rect_left <- c(43.5,53.5,63.5,73.5,83.5,93.5,103.5,113.5,123.5,133.5,143.5,153.5,163.5,173.5,183.5,193.5,203.5)
+  DelFlapMHJPlotBreaks = min(DelFlapMHJ$LeftFlap-1.5):max(DelFlapMHJ$RightFlap+1.5)
+  DelFlapMHJPlotLabel = dput(as.character(referenceSplit[DelFlapMHJPlotBreaks]))
+  DelFlapMHJPlot <- ggplot()+
+    geom_boxplot(data=DelFlapMHJ, aes(x=FlapID, ymin = LeftFlap, lower = LeftFlap, middle = LeftFlap, 
+                                      upper = RightFlap, ymax = RightFlap,fill=percent_flap, linetype=Mechanism),
+                 colour="white", stat = "identity",width=.8,lwd=.5) + coord_flip()+scale_linetype_manual(values=c("solid", "dashed","dotted"),guide="none")+
+    scale_fill_gradientn(colours = c("red","yellow","green","lightblue","darkblue"),values=c(1.0,0.8,0.6,0.4,0.2,0),
+                         guide_legend(title="% Deletion From\nSingle Step\nMHJ Deletion Events"),limits=c(0,max(DelFlapMHJ$percent_flap+1.5)))+scale_y_continuous(limits=c(min(DelFlapMHJ$LeftFlap-1.5),max(DelFlapMHJ$RightFlap+1.5)),
+                                                                                                                                                                  breaks=DelFlapMHJPlotBreaks,
+                                                                                                                                                                  labels = DelFlapMHJPlotLabel,
+                                                                                                                                                                  name = "Nucleotide",expand=c(0,0))+theme_classic(base_size = 10)+theme(legend.text=element_text(size=8,face="bold"),
+                                                                                                                                                                                                                                         axis.text.y= element_blank(),axis.title.y=element_blank(),axis.text.x= element_text(face="bold"),axis.title.x=element_text(face="bold"),
+                                                                                                                                                                                                                                         axis.ticks=element_blank(),
+                                                                                                                                                                                                                                         panel.border = element_rect(colour = "black", fill=NA, size=1))+guides(guide_legend(title.theme = element_text(size=8, face="bold", angle=0),
+                                                                                                                                                                                                                                                                                                                             label.theme=element_text(size=8, face="bold", angle=0)))+geom_rect(data=rectangles, aes(ymin=as.numeric(xmin), 
+                                                                                                                                                                                                                                                                                                                                                                                                                     ymax=as.numeric(xmax), xmin=ymin, xmax=ymax),fill="grey", alpha=0.4, colour=NA)+
+    geom_boxplot(data=DelFlapMHJ, aes(x=FlapID, ymin = LeftFlap, lower = LeftFlap, middle = LeftFlap, 
+                                      upper = RightFlap, ymax = RightFlap,fill=percent_flap, linetype=Mechanism), colour="black",stat = "identity",
+                 width=.8,lwd=.5)+ geom_hline(yintercept = BreakPointFromLeft+0.5, colour="red", size=0.75)
+  
+  DelFlapMHJPlot
+  pdf(paste(outdir, "/", "plots/", plasmid, "_Deletion_Flap_MHJ_Plot.pdf", sep=""), height = 5, width = 10)
+  DelFlapMHJPlot
+  dev.off()
+  
+  #----------------Deletion Flap Plot - ABJ Plot-----------------------------------
+  rect_left <- c(43.5,53.5,63.5,73.5,83.5,93.5,103.5,113.5,123.5,133.5,143.5,153.5,163.5,173.5,183.5,193.5,203.5)
+  DelFlapABJPlotBreaks = min(DelFlapABJ$LeftFlap-1.5):max(DelFlapABJ$RightFlap+1.5)
+  DelFlapABJPlotLabel = dput(as.character(referenceSplit[DelFlapABJPlotBreaks]))
+  DelFlapABJPlot <- ggplot()+
+    geom_boxplot(data=DelFlapABJ, aes(x=FlapID, ymin = LeftFlap, lower = LeftFlap, middle = LeftFlap, 
+                                      upper = RightFlap, ymax = RightFlap,fill=percent_flap, linetype=Mechanism),
+                 colour="white", stat = "identity",width=.8,lwd=.5) + coord_flip()+scale_linetype_manual(values=c("solid", "dashed","dotted"),guide="none")+
+    scale_fill_gradientn(colours = c("red","yellow","green","lightblue","darkblue"),values=c(1.0,0.8,0.6,0.4,0.2,0),
+                         guide_legend(title="% Deletion From\nSingle Step\nABJ Deletion Events"),limits=c(0,max(DelFlapABJ$percent_flap+1.5)))+scale_y_continuous(limits=c(min(DelFlapABJ$LeftFlap-1.5),max(DelFlapABJ$RightFlap+1.5)),
+                                                                                                                                                                  breaks=DelFlapABJPlotBreaks,
+                                                                                                                                                                  labels = DelFlapABJPlotLabel,
+                                                                                                                                                                  name = "Nucleotide",expand=c(0,0))+theme_classic(base_size = 10)+theme(legend.text=element_text(size=8,face="bold"),
+                                                                                                                                                                                                                                         axis.text.y= element_blank(),axis.title.y=element_blank(),axis.text.x= element_text(face="bold"),axis.title.x=element_text(face="bold"),
+                                                                                                                                                                                                                                         axis.ticks=element_blank(),
+                                                                                                                                                                                                                                         panel.border = element_rect(colour = "black", fill=NA, size=1))+guides(guide_legend(title.theme = element_text(size=8, face="bold", angle=0),
+                                                                                                                                                                                                                                                                                                                             label.theme=element_text(size=8, face="bold", angle=0)))+geom_rect(data=rectangles, aes(ymin=as.numeric(xmin), 
+                                                                                                                                                                                                                                                                                                                                                                                                                     ymax=as.numeric(xmax), xmin=ymin, xmax=ymax),fill="grey", alpha=0.4, colour=NA)+
+    geom_boxplot(data=DelFlapABJ, aes(x=FlapID, ymin = LeftFlap, lower = LeftFlap, middle = LeftFlap, 
+                                      upper = RightFlap, ymax = RightFlap,fill=percent_flap, linetype=Mechanism), colour="black",stat = "identity",
+                 width=.8,lwd=.5)+ geom_hline(yintercept = BreakPointFromLeft+0.5, colour="red", size=0.75)
+  
+  DelFlapABJPlot
+  pdf(paste(outdir, "/", "plots/", plasmid, "_Deletion_Flap_ABJ_Plot.pdf", sep=""), height = 5, width = 10)
+  DelFlapABJPlot
+  dev.off()
+  
+  #----------------Deletion Resection - Data Manipulation-----------
+  #To generate a plot of the furthest identifiable point of resection or duplex unwinding = furthest from break repeat motif
+  DelLeft=subset(DeletionData2, Break.Side == "left")
+  DelLeft$RM_to_break= abs(DelLeft$P1.to.Break)
+  DelRight=subset(DeletionData2, Break.Side=="right")
+  DelRight$RM_to_break = abs(DelRight$P1.to.Break)
+  DelFromBreak=rbind(DelLeft, DelRight)
+  DelFromBreak=DelFromBreak[,-c(1,3, 20:23, 39, 40, 42,43,46, 47)]
+  DelFromBreak$percent = (DelFromBreak$READS.x/sum(DelFromBreak$READS.x))*100
+  write.csv(DelFromBreak, paste(outdir, "/", "table_outputs/", plasmid, "_deletion_resection_data.csv", sep=""))
+  DelFromBreakMean=sum(DelFromBreak$RM_to_break*DelFromBreak$READS.x)/sum(DelFromBreak$READS.x)
+  
+  #----------------Deletion Resection - Plot - Break Side-----------
+  DeletionResectionPlotSide = ggplot(DelFromBreak)+
+    geom_bar(aes(x=RM_to_break, y=percent, color=Break.Side), position="stack", stat="identity", fill="grey50", width=0.5) +
+    theme_bw()+
+    geom_vline(aes(xintercept = DelFromBreakMean), colour="blue", size=0.75,linetype = "longdash")+
+    #geom_vline(aes(xintercept = median), colour="red", size=0.75,linetype = "longdash",data=distMedian)+
+    scale_y_continuous(name = "Percent Deletions (%)")+  
+    scale_x_continuous(name="Resection/Unwinding Required for SD-MMEJ Action (bp)",
+                       breaks = seq(0, max(DelFromBreak$RM_to_break), by = 2))+
+    theme(axis.text.x=element_text(size=10, face="bold"),
+          axis.text.y=element_text(size=10, face="bold"),
+          axis.title.x=element_text(size=12, face="bold"),
+          axis.title.y=element_text(size=12, face="bold"))+
+    theme(strip.text.x = element_text(size=10, face="bold"),
+          strip.text.y = element_text(size=10, face="bold"))
+  DeletionResectionPlotSide
+  pdf(paste(outdir, "/", "plots/", plasmid, "_Deletion_Resection_Plot_BreakSide.pdf", sep=""), height = 5, width = 10)
+  DeletionResectionPlotSide
+  dev.off()
+  
+  #----------------Deletion Resection - Plot - Mechanism-----------
+  DeletionResectionPlotMechanism = ggplot(DelFromBreak)+
+    geom_bar(aes(x=RM_to_break, y=percent, color=Mechanism), position="stack", stat="identity", fill="grey50", width=0.5) +
+    theme_bw()+
+    geom_vline(aes(xintercept = DelFromBreakMean), colour="blue", size=0.75,linetype = "longdash")+
+    #geom_vline(aes(xintercept = median), colour="red", size=0.75,linetype = "longdash",data=distMedian)+
+    scale_y_continuous(name = "Percent Deletions (%)")+  
+    scale_x_continuous(name="Resection/Unwinding Required for SD-MMEJ Action (bp)",
+                       breaks = seq(0, max(DelFromBreak$RM_to_break), by = 2))+
+    theme(axis.text.x=element_text(size=10, face="bold"),
+          axis.text.y=element_text(size=10, face="bold"),
+          axis.title.x=element_text(size=12, face="bold"),
+          axis.title.y=element_text(size=12, face="bold"))+
+    theme(strip.text.x = element_text(size=10, face="bold"),
+          strip.text.y = element_text(size=10, face="bold"))
+  DeletionResectionPlotMechanism
+  pdf(paste(outdir, "/", "plots/", plasmid, "_Deletion_Resection_Plot_Mechanism.pdf", sep=""), height = 5, width = 10)
+  DeletionResectionPlotMechanism
+  dev.off()
+  
+  #----------------Deletion Resection - Plot - Repair Type-----------
+  DeletionResectionPlotRepairType = ggplot(DelFromBreak)+
+    geom_bar(aes(x=RM_to_break, y=percent, color=Repair.Type), position="stack", stat="identity", fill="grey50", width=0.5) +
+    theme_bw()+
+    geom_vline(aes(xintercept = DelFromBreakMean), colour="blue", size=0.75,linetype = "longdash")+
+    #geom_vline(aes(xintercept = median), colour="red", size=0.75,linetype = "longdash",data=distMedian)+
+    scale_y_continuous(name = "Percent Deletions (%)")+  
+    scale_x_continuous(name="Resection/Unwinding Required for SD-MMEJ Action (bp)",
+                       breaks = seq(0, max(DelFromBreak$RM_to_break), by = 2))+
+    theme(axis.text.x=element_text(size=10, face="bold"),
+          axis.text.y=element_text(size=10, face="bold"),
+          axis.title.x=element_text(size=12, face="bold"),
+          axis.title.y=element_text(size=12, face="bold"))+
+    theme(strip.text.x = element_text(size=10, face="bold"),
+          strip.text.y = element_text(size=10, face="bold"))
+  DeletionResectionPlotRepairType
+  pdf(paste(outdir, "/", "plots/", plasmid, "_Deletion_Resection_Plot_Repair_Type.pdf", sep=""), height = 5, width = 10)
+  DeletionResectionPlotRepairType
+  dev.off()
+  
+  #----------------Deletion Repeat Motif by Side - Plot - Mechanism---------------
+  DelSide = DeletionData2
+  DelSideMechPlot = ggplot(DelSide)+
+    geom_bar(aes(x=Break.Side, y=percent_deletion, color=Mechanism), position="stack", stat="identity", fill="grey50") +
+    theme_bw()+
+    scale_y_continuous(name = "Percent Usage (%)")+  
+    scale_x_discrete(name="Side")+
+    theme(axis.text.x=element_text(size=10, face="bold"),
+          axis.text.y=element_text(size=10, face="bold"),
+          axis.title.x=element_text(size=12, face="bold"),
+          axis.title.y=element_text(size=12, face="bold"))+
+    theme(strip.text.x = element_text(size=10, face="bold"),
+          strip.text.y = element_text(size=10, face="bold"))
+  DelSideMechPlot
+  pdf(paste(outdir, "/", "plots/", plasmid, "_Deletion_Side_Usage_Mech_Plot.pdf", sep=""), height = 5, width = 10)
+  DelSideMechPlot
+  dev.off()
+  
+  #----------------Deletion Repeat Motif by Side - Plot - Repair Type---------------
+  DelSideTypePlot = ggplot(DelSide)+
+    geom_bar(aes(x=Break.Side, y=percent_deletion, color=Repair.Type), position="stack", stat="identity", fill="grey50") +
+    theme_bw()+
+    scale_y_continuous(name = "Percent Usage (%)")+  
+    scale_x_discrete(name="Side")+
+    theme(axis.text.x=element_text(size=10, face="bold"),
+          axis.text.y=element_text(size=10, face="bold"),
+          axis.title.x=element_text(size=12, face="bold"),
+          axis.title.y=element_text(size=12, face="bold"))+
+    theme(strip.text.x = element_text(size=10, face="bold"),
+          strip.text.y = element_text(size=10, face="bold"))
+  DelSideTypePlot
+  pdf(paste(outdir, "/", "plots/", plasmid, "_Deletion_Side_Usage_Repair_Type_Plot.pdf", sep=""), height = 5, width = 10)
+  DelSideTypePlot
+  dev.off()
+  
+  
+  ## second set of deletion plots
+  
+  #----------------------------Microhomology Length Plot - Inaccurate Reads----------
+  MHevents = subset(all, all$MH_Length>0)
+  MHlength = aggregate(as.numeric(percent_inaccurate)~MH_Length, data=MHevents, sum)
+  colnames(MHlength)[2]="percent_inaccurate"
+  
+  MHLengthPlot = ggplot(MHlength)+
+    geom_bar(aes(x=MH_Length, y=percent_inaccurate), position="stack", stat="identity", colour="black", fill="grey50") +
+    theme_bw()+
+    #geom_vline(aes(xintercept = mean), colour="blue", size=0.75,linetype = "longdash",data=len.mean)+
+    #geom_vline(aes(xintercept = median), colour="red", size=0.75,linetype = "longdash",data=len.median)+
+    scale_y_continuous(name = "Percent Inaccurate Reads")+
+    scale_x_continuous(name="Microhomology (bp)",
+                       breaks = seq(1, 100, by = 1))+
+    theme(axis.text.x=element_text(size=10, face="bold"),
+          axis.text.y=element_text(size=10, face="bold"),
+          axis.title.x=element_text(size=12, face="bold"),
+          axis.title.y=element_text(size=12, face="bold"))+
+    theme(strip.text.x = element_text(size=10, face="bold"),
+          strip.text.y = element_text(size=10, face="bold"))
+  MHLengthPlot
+  pdf(paste(outdir, "/", "plots/", plasmid, "_MH_Length_Plot_Consistent_InaccurateReads.pdf", sep=""), width = 10)
+  MHLengthPlot
+  dev.off()
+  
+  #----------------------------Microhomology Length Plot - Deletion Events----------
+  MHevents = subset(all, all$MH_Length>0)
+  MHevents$percent_deletion = MHevents$READS/sum(MHevents$READS)*100
+  MHlengthdeletion = aggregate(as.numeric(percent_deletion)~MH_Length, data=MHevents, sum)
+  colnames(MHlengthdeletion)[2]="percent_deletion"
+  
+  MHLengthPlotDeletion = ggplot(MHlengthdeletion)+
+    geom_bar(aes(x=MH_Length, y=percent_deletion), position="stack", stat="identity", colour="black", fill="grey50") +
+    theme_bw()+
+    #geom_vline(aes(xintercept = mean), colour="blue", size=0.75,linetype = "longdash",data=len.mean)+
+    #geom_vline(aes(xintercept = median), colour="red", size=0.75,linetype = "longdash",data=len.median)+
+    scale_y_continuous(name = "Percent SD-MMEJ Consistent Deletions")+
+    scale_x_continuous(name="Microhomology (bp)",
+                       breaks = seq(1, 100, by = 1))+
+    theme(axis.text.x=element_text(size=10, face="bold"),
+          axis.text.y=element_text(size=10, face="bold"),
+          axis.title.x=element_text(size=12, face="bold"),
+          axis.title.y=element_text(size=12, face="bold"))+
+    theme(strip.text.x = element_text(size=10, face="bold"),
+          strip.text.y = element_text(size=10, face="bold"))
+  MHLengthPlotDeletion
+  pdf(paste(outdir, "/", "plots/", plasmid, "_MH_Length_Plot_Deletion_Consistent.pdf", sep=""), width = 10)
+  MHLengthPlot
+  dev.off()
+  
+  #----------------------------Microhomology Usage Plot- Inaccurate Reads----------
+  MHusage = aggregate(as.numeric(percent_inaccurate)~MICROHOMOLOGY, data=MHevents, sum)
+  colnames(MHusage)[2]="percent_inaccurate"
+  microhomology = MHusage$MICROHOMOLOGY
+  
+  MHusagePlot <- ggplot(MHusage)+
+    geom_histogram(aes(x=MICROHOMOLOGY, y=percent_inaccurate), position="stack", stat="identity", colour="black", fill="grey50") +
+    theme_bw()+
+    # facet_wrap(~PG, scales="free_y")+
+    # geom_vline(aes(xintercept = mean), colour="blue", size=0.75,linetype = "longdash",data=len.mean)+
+    # geom_vline(aes(xintercept = median), colour="red", size=0.75,linetype = "longdash",data=len.median)+
+    # ggtitle("Left Synthesis")+
+    scale_y_continuous(name = "Percent Inaccurate")+  
+    scale_x_discrete(name="Microhomology")+
+    theme(plot.title = element_text(color="grey28", size=12),
+          axis.text.x=element_text(size=10, face="bold"),
+          axis.text.y=element_text(size=10, face="bold"),
+          axis.title.x=element_text(size=12, face="bold"),
+          axis.title.y=element_text(size=12, face="bold"))+
+    theme(strip.text.x = element_text(size=10, face="bold"),
+          strip.text.y = element_text(size=10, face="bold"))
+  MHusagePlot
+  pdf(paste(outdir, "/", "plots/", plasmid, "_MH_Usage_Plot_InaccurateReads.pdf", sep=""), width = 15)
+  MHusagePlot
+  dev.off()
+  
+  #----------------------------Microhomology Usage Plot - Deletion Events----------
+  MHusageDeletion = aggregate(as.numeric(percent_deletion)~MICROHOMOLOGY, data=MHevents, sum)
+  colnames(MHusageDeletion)[2]="percent_deletion"
+  microhomology = MHusageDeletion$MICROHOMOLOGY
+  write.csv(MHusageDeletion, paste(outdir, "/", "table_outputs/", plasmid, "_MH_usage_consistent_deletions.csv", sep=""))
+  
+  MHusagePlotDeletion <- ggplot(MHusageDeletion)+
+    geom_histogram(aes(x=MICROHOMOLOGY, y=percent_deletion), position="stack", stat="identity", colour="black", fill="grey50") +
+    theme_bw()+
+    # facet_wrap(~PG, scales="free_y")+
+    # geom_vline(aes(xintercept = mean), colour="blue", size=0.75,linetype = "longdash",data=len.mean)+
+    # geom_vline(aes(xintercept = median), colour="red", size=0.75,linetype = "longdash",data=len.median)+
+    # ggtitle("Left Synthesis")+
+    scale_y_continuous(name = "Percent SD-MMEJ Consistent Deletions")+  
+    scale_x_discrete(name="Microhomology")+
+    theme(plot.title = element_text(color="grey28", size=12),
+          axis.text.x=element_text(size=10, face="bold"),
+          axis.text.y=element_text(size=10, face="bold"),
+          axis.title.x=element_text(size=12, face="bold"),
+          axis.title.y=element_text(size=12, face="bold"))+
+    theme(strip.text.x = element_text(size=10, face="bold"),
+          strip.text.y = element_text(size=10, face="bold"))
+  MHusagePlotDeletion
+  pdf(paste(outdir, "/", "plots/", plasmid, "_MH_Usage_Plot_Consistent_Deletions.pdf", sep=""), width = 15)
+  MHusagePlotDeletion
+  dev.off()
+  
+  
+  #--------------------------Deletion Length Plot - All----------------
+  deletions$deletion_length = abs(deletions$TOTAL_DELETION)
+  AllDeletionsAggLength = aggregate(READS~deletion_length + CONSISTENCY, data=deletions, sum)
+  AllDeletionsAggLength$Percent_Deletion = AllDeletionsAggLength$READS/sum(AllDeletionsAggLength$READS)*100
+  AllDeletionsAggLength$READSxLength = AllDeletionsAggLength$READS * AllDeletionsAggLength$deletion_length
+  AllDeletionsAggMean = sum(AllDeletionsAggLength$READSxLength)/sum(AllDeletionsAggLength$READS)
+  
+  AllDeletionsLengthPlot = ggplot(AllDeletionsAggLength)+geom_bar(aes(x=deletion_length, y=Percent_Deletion, fill= CONSISTENCY), stat="identity", colour="black")+
+    theme_bw()+scale_y_continuous(name = "Percent of Deletions")+ scale_x_continuous(name = "Deletion Length (bp)", breaks = seq(0, max(AllDeletionsAggLength$deletion_length), by =2))+
+    theme(plot.title = element_text(color="grey28", size=12),
+          axis.text.x=element_text(size=10, face="bold"),
+          axis.text.y=element_text(size=10, face="bold"),
+          axis.title.x=element_text(size=12, face="bold"),
+          axis.title.y=element_text(size=12, face="bold"))+
+    theme(strip.text.x = element_text(size=10, face="bold"),
+          strip.text.y = element_text(size=10, face="bold"))+
+    geom_vline(aes(xintercept = AllDeletionsAggMean), colour="blue", size=0.75,linetype = "longdash")
+  AllDeletionsLengthPlot
+  pdf(paste(outdir, "/", "plots/", plasmid, "_Deletion_Length_Plot_All.pdf", sep=""), width = 20)
+  AllDeletionsLengthPlot
+  dev.off()
+  
+  #--------------------------Deletion Length Plot - Consistent----------------
+  ConsistentDeletions = subset(deletions, CONSISTENCY=="TRUE")
+  ConsistentDeletionsAggLength = aggregate(READS~deletion_length, data=ConsistentDeletions, sum)
+  ConsistentDeletionsAggLength$Percent_Deletion = ConsistentDeletionsAggLength$READS/sum(ConsistentDeletionsAggLength$READS)*100
+  ConsistentDeletionsAggLength$READSxLength = ConsistentDeletionsAggLength$READS * ConsistentDeletionsAggLength$deletion_length
+  ConDelAggMean = sum(ConsistentDeletionsAggLength$READSxLength)/sum(ConsistentDeletionsAggLength$READS)
+  
+  ConsistentDeletionsLengthPlot = ggplot(ConsistentDeletionsAggLength)+geom_bar(aes(x=deletion_length, y=Percent_Deletion), stat="identity", colour="black", fill="grey50")+
+    theme_bw()+scale_y_continuous(name = "Percent of SD-MMEJ Consistent Deletions")+ scale_x_continuous(name = "Deletion Length (bp)", breaks = seq(0, max(ConsistentDeletionsAggLength$deletion_length), by = 2))+
+    theme(plot.title = element_text(color="grey28", size=12),
+          axis.text.x=element_text(size=10, face="bold"),
+          axis.text.y=element_text(size=10, face="bold"),
+          axis.title.x=element_text(size=12, face="bold"),
+          axis.title.y=element_text(size=12, face="bold"))+
+    theme(strip.text.x = element_text(size=10, face="bold"),
+          strip.text.y = element_text(size=10, face="bold"))+
+    geom_vline(aes(xintercept = ConDelAggMean), colour="blue", size=0.75,linetype = "longdash")
+  ConsistentDeletionsLengthPlot
+  pdf(paste(outdir, "/", "plots/", plasmid, "_Deletion_Length_Plot_Consistent.pdf", sep=""), width = 20)
+  ConsistentDeletionsLengthPlot
+  dev.off()
 }
-colnames(DelMotif) = c("motif_mechID", "temp_coord","READS","mechanism")
-DelSnapBack = subset(DelMotif, mechanism=="snap-back")
-DelLoopOut = subset(DelMotif, mechanism=="loop-out")
-DelSnapBack = aggregate(READS~temp_coord, data=DelSnapBack, sum)
-DelSnapBack$mechanism = "Snap-back"
-DelLoopOut = aggregate(READS~temp_coord, data=DelLoopOut, sum)
-DelLoopOut$mechanism = "Loop-out"
-DelMotif2 = rbind(DelSnapBack, DelLoopOut)
-DelMotif2$x = "1"
-DelMotif2$percent_deletion = DelMotif2$READS/sum(DelMotif2$READS)*100
-DelMotif2$temp_coord2 = DelMotif2$temp_coord-0.5
-write.csv(DelMotif2, paste(outdir, "/", "table_outputs/", plasmid, "_del_data_for_temp_plot_mech.csv", sep=""))
-
-DelMotif = aggregate(READS~temp_coord, data=DelMotif, sum)
-DelMotif$x = plasmid
-DelMotif$percent_deletion = DelMotif$READS/sum(DelMotif$READS)*100
-DelMotif$temp_coord2 = DelMotif$temp_coord-0.5
-write.csv(DelMotif, paste(outdir, "/", "table_outputs/", plasmid, "_del_data_for_temp_plot.csv", sep=""))
-
-#----------------Deletion Repeat Motif Plot-------------------
-DeletionData2 = arrange(transform(DeletionData2, motif_mechID=factor(motif_mechID, levels = motif_mechID)), motif_mechID)
-
-DelMotifPlotBreaks = min(DeletionData2$MOTIF_START2-1.5):max(DeletionData2$MOTIF_END2+2.5)
-DelMotifPlotLabel = dput(as.character(referenceSplit[DelMotifPlotBreaks]))
-rect_left <- c(33.5,43.5,53.5,63.5,73.5,83.5,93.5,103.5,113.5,123.5,133.5,143.5,153.5,163.5,173.5,183.5,193.5,203.5,213.5,223.5)
-rectangles <- data.frame(
-  xmin = rect_left,
-  xmax = rect_left + 5,
-  ymin = -Inf,
-  ymax = Inf
-)
-DelMotifPlot = ggplot()+
-  geom_boxplot(data=DeletionData2, aes(x=motif_mechID, ymin = MOTIF_START2, lower = MOTIF_START2, middle = MOTIF_START2, 
-                                    upper = MOTIF_END2, ymax = MOTIF_END2,
-                                    fill=percent_deletion, linetype=Mechanism),
-               colour="white",
-               stat = "identity",
-               width=.8,  
-               lwd=.5) + 
-  coord_flip()+
-  scale_linetype_manual(values=c("solid", "dashed","dotted"),guide=FALSE)+
-  scale_fill_gradientn(colours = c("red","yellow","green","lightblue","darkblue"),
-                       values=c(1.0,0.8,0.6,0.4,0.2,0),
-                       limits=c(0,max(DeletionData2$percent_deletion+1.5)),
-                       guide_legend(title="% SD-MMEJ\nConsistent\nDeletion Reads"))+
-  scale_y_continuous(limits=c(min(DeletionData2$MOTIF_START2-1.5),max(DeletionData2$MOTIF_END2+1.5)),
-                     breaks=DelMotifPlotBreaks,
-                     labels = DelMotifPlotLabel,
-                     name = "Nucleotide",
-                     expand=c(0,0))+
-  theme_classic(base_size = 10)+
-  theme(legend.text=element_text(size=8,face="bold"),
-        axis.text.y= element_blank(),
-        axis.title.y=element_blank(),
-        axis.text.x= element_text(face="bold"),
-        axis.title.x=element_text(face="bold"),
-        axis.ticks=element_blank(),
-        legend.key.size=unit(0.42,"cm"),
-        panel.border = element_rect(colour = "black", fill=NA, size=1))+
-  guides(guide_legend(title.theme = element_text(size=4, face="bold", angle=0),
-                      label.theme=element_text(size=8, face="bold", angle=0)))+
-  geom_rect(data=rectangles, aes(ymin=as.numeric(xmin), ymax=as.numeric(xmax), xmin=ymin, xmax=ymax),
-            fill="grey", alpha=0.8, colour=NA)+
-  geom_boxplot(data=DeletionData2, aes(x=motif_mechID, ymin = MOTIF_START2, lower = MOTIF_START2, middle = MOTIF_START2, 
-                                    upper = MOTIF_END2, ymax = MOTIF_END2,
-                                    fill=percent_deletion, linetype=Mechanism),
-               colour="black",
-               stat = "identity",
-               width=.8, 
-               lwd=.5)+  
-  geom_hline(yintercept = BreakPointFromLeft+0.5, colour="red", size=0.75)
-DelMotifPlot
-pdf(paste(outdir, "/", "plots/", plasmid, "_Deletion_Repeat_Motif.pdf", sep=""), height = 7, width = 10)
-DelMotifPlot
-dev.off()
-
-#----------------Deletion Flap Plot - Data Manipulation-----------------------------------
-DelFlap = DeletionData2[,-c(1,3,9:16, 18, 20:27, 36, 39:43, 46,47)]
-DelFlap = subset(DelFlap, TOTAL_DELETION !="NA")
-DelFlap$LeftFlap = BreakPointFromLeft+0.5+DelFlap$DELETION_FROM_LEFT
-DelFlap$RightFlap = BreakPointFromLeft+0.5-DelFlap$DELETION_FROM_RIGHT
-DelFlap$FlapID = paste(DelFlap$LeftFlap, DelFlap$RightFlap, DelFlap$Mechanism, DelFlap$Repair.Type)
-DelFlapAggr=aggregate(READS.x~FlapID, data=DelFlap,sum)
-DelFlapTable=as.data.frame(table(DelFlap$FlapID))
-DelFlapAggr=merge(DelFlapAggr, DelFlapTable, by.x="FlapID", by.y="Var1")
-DelFlap=merge(DelFlapAggr, DelFlap, by="FlapID")
-DelFlap=DelFlap[!duplicated(DelFlap$FlapID),]
-colnames(DelFlap)[2]="READS"
-DelFlapMHJ = subset(DelFlap, Repair.Type=="MHJ")
-DelFlapABJ = subset(DelFlap, Repair.Type=="ABJ")
-DelFlapMHJ$percent_flap = DelFlapMHJ$READS/(sum(DelFlapMHJ$READS))*100
-DelFlapABJ$percent_flap = DelFlapABJ$READS/(sum(DelFlapABJ$READS))*100
-
-#----------------Deletion Flap Plot - MHJ Plot-----------------------------------
-rect_left <- c(43.5,53.5,63.5,73.5,83.5,93.5,103.5,113.5,123.5,133.5,143.5,153.5,163.5,173.5,183.5,193.5,203.5)
-DelFlapMHJPlotBreaks = min(DelFlapMHJ$LeftFlap-1.5):max(DelFlapMHJ$RightFlap+1.5)
-DelFlapMHJPlotLabel = dput(as.character(referenceSplit[DelFlapMHJPlotBreaks]))
-DelFlapMHJPlot <- ggplot()+
-  geom_boxplot(data=DelFlapMHJ, aes(x=FlapID, ymin = LeftFlap, lower = LeftFlap, middle = LeftFlap, 
-                                 upper = RightFlap, ymax = RightFlap,fill=percent_flap, linetype=Mechanism),
-               colour="white", stat = "identity",width=.8,lwd=.5) + coord_flip()+scale_linetype_manual(values=c("solid", "dashed","dotted"),guide="none")+
-  scale_fill_gradientn(colours = c("red","yellow","green","lightblue","darkblue"),values=c(1.0,0.8,0.6,0.4,0.2,0),
-                       guide_legend(title="% Deletion From\nSingle Step\nMHJ Deletion Events"),limits=c(0,max(DelFlapMHJ$percent_flap+1.5)))+scale_y_continuous(limits=c(min(DelFlapMHJ$LeftFlap-1.5),max(DelFlapMHJ$RightFlap+1.5)),
-                                                                                                                                 breaks=DelFlapMHJPlotBreaks,
-                                                                                                                                 labels = DelFlapMHJPlotLabel,
-                                                                                                                                 name = "Nucleotide",expand=c(0,0))+theme_classic(base_size = 10)+theme(legend.text=element_text(size=8,face="bold"),
-                                                                                                                                                                                                        axis.text.y= element_blank(),axis.title.y=element_blank(),axis.text.x= element_text(face="bold"),axis.title.x=element_text(face="bold"),
-                                                                                                                                                                                                        axis.ticks=element_blank(),
-                                                                                                                                                                                                        panel.border = element_rect(colour = "black", fill=NA, size=1))+guides(guide_legend(title.theme = element_text(size=8, face="bold", angle=0),
-                                                                                                                                                                                                                                                                                            label.theme=element_text(size=8, face="bold", angle=0)))+geom_rect(data=rectangles, aes(ymin=as.numeric(xmin), 
-                                                                                                                                                                                                                                                                                                                                                                                    ymax=as.numeric(xmax), xmin=ymin, xmax=ymax),fill="grey", alpha=0.4, colour=NA)+
-  geom_boxplot(data=DelFlapMHJ, aes(x=FlapID, ymin = LeftFlap, lower = LeftFlap, middle = LeftFlap, 
-                                 upper = RightFlap, ymax = RightFlap,fill=percent_flap, linetype=Mechanism), colour="black",stat = "identity",
-               width=.8,lwd=.5)+ geom_hline(yintercept = BreakPointFromLeft+0.5, colour="red", size=0.75)
-
-DelFlapMHJPlot
-pdf(paste(outdir, "/", "plots/", plasmid, "_Deletion_Flap_MHJ_Plot.pdf", sep=""), height = 5, width = 10)
-DelFlapMHJPlot
-dev.off()
-
-#----------------Deletion Flap Plot - ABJ Plot-----------------------------------
-rect_left <- c(43.5,53.5,63.5,73.5,83.5,93.5,103.5,113.5,123.5,133.5,143.5,153.5,163.5,173.5,183.5,193.5,203.5)
-DelFlapABJPlotBreaks = min(DelFlapABJ$LeftFlap-1.5):max(DelFlapABJ$RightFlap+1.5)
-DelFlapABJPlotLabel = dput(as.character(referenceSplit[DelFlapABJPlotBreaks]))
-DelFlapABJPlot <- ggplot()+
-  geom_boxplot(data=DelFlapABJ, aes(x=FlapID, ymin = LeftFlap, lower = LeftFlap, middle = LeftFlap, 
-                                    upper = RightFlap, ymax = RightFlap,fill=percent_flap, linetype=Mechanism),
-               colour="white", stat = "identity",width=.8,lwd=.5) + coord_flip()+scale_linetype_manual(values=c("solid", "dashed","dotted"),guide="none")+
-  scale_fill_gradientn(colours = c("red","yellow","green","lightblue","darkblue"),values=c(1.0,0.8,0.6,0.4,0.2,0),
-                       guide_legend(title="% Deletion From\nSingle Step\nABJ Deletion Events"),limits=c(0,max(DelFlapABJ$percent_flap+1.5)))+scale_y_continuous(limits=c(min(DelFlapABJ$LeftFlap-1.5),max(DelFlapABJ$RightFlap+1.5)),
-                                                                                                                              breaks=DelFlapABJPlotBreaks,
-                                                                                                                              labels = DelFlapABJPlotLabel,
-                                                                                                                              name = "Nucleotide",expand=c(0,0))+theme_classic(base_size = 10)+theme(legend.text=element_text(size=8,face="bold"),
-                                                                                                                                                                                                     axis.text.y= element_blank(),axis.title.y=element_blank(),axis.text.x= element_text(face="bold"),axis.title.x=element_text(face="bold"),
-                                                                                                                                                                                                     axis.ticks=element_blank(),
-                                                                                                                                                                                                     panel.border = element_rect(colour = "black", fill=NA, size=1))+guides(guide_legend(title.theme = element_text(size=8, face="bold", angle=0),
-                                                                                                                                                                                                                                                                                         label.theme=element_text(size=8, face="bold", angle=0)))+geom_rect(data=rectangles, aes(ymin=as.numeric(xmin), 
-                                                                                                                                                                                                                                                                                                                                                                                 ymax=as.numeric(xmax), xmin=ymin, xmax=ymax),fill="grey", alpha=0.4, colour=NA)+
-  geom_boxplot(data=DelFlapABJ, aes(x=FlapID, ymin = LeftFlap, lower = LeftFlap, middle = LeftFlap, 
-                                    upper = RightFlap, ymax = RightFlap,fill=percent_flap, linetype=Mechanism), colour="black",stat = "identity",
-               width=.8,lwd=.5)+ geom_hline(yintercept = BreakPointFromLeft+0.5, colour="red", size=0.75)
-
-DelFlapABJPlot
-pdf(paste(outdir, "/", "plots/", plasmid, "_Deletion_Flap_ABJ_Plot.pdf", sep=""), height = 5, width = 10)
-DelFlapABJPlot
-dev.off()
-
-#----------------Deletion Resection - Data Manipulation-----------
-#To generate a plot of the furthest identifiable point of resection or duplex unwinding = furthest from break repeat motif
-DelLeft=subset(DeletionData2, Break.Side == "left")
-DelLeft$RM_to_break= abs(DelLeft$P1.to.Break)
-DelRight=subset(DeletionData2, Break.Side=="right")
-DelRight$RM_to_break = abs(DelRight$P1.to.Break)
-DelFromBreak=rbind(DelLeft, DelRight)
-DelFromBreak=DelFromBreak[,-c(1,3, 20:23, 39, 40, 42,43,46, 47)]
-DelFromBreak$percent = (DelFromBreak$READS.x/sum(DelFromBreak$READS.x))*100
-write.csv(DelFromBreak, paste(outdir, "/", "table_outputs/", plasmid, "_deletion_resection_data.csv", sep=""))
-DelFromBreakMean=sum(DelFromBreak$RM_to_break*DelFromBreak$READS.x)/sum(DelFromBreak$READS.x)
-
-#----------------Deletion Resection - Plot - Break Side-----------
-DeletionResectionPlotSide = ggplot(DelFromBreak)+
-  geom_bar(aes(x=RM_to_break, y=percent, color=Break.Side), position="stack", stat="identity", fill="grey50", width=0.5) +
-  theme_bw()+
-  geom_vline(aes(xintercept = DelFromBreakMean), colour="blue", size=0.75,linetype = "longdash")+
-  #geom_vline(aes(xintercept = median), colour="red", size=0.75,linetype = "longdash",data=distMedian)+
-  scale_y_continuous(name = "Percent Deletions (%)")+  
-  scale_x_continuous(name="Resection/Unwinding Required for SD-MMEJ Action (bp)",
-                     breaks = seq(0, max(DelFromBreak$RM_to_break), by = 2))+
-  theme(axis.text.x=element_text(size=10, face="bold"),
-        axis.text.y=element_text(size=10, face="bold"),
-        axis.title.x=element_text(size=12, face="bold"),
-        axis.title.y=element_text(size=12, face="bold"))+
-  theme(strip.text.x = element_text(size=10, face="bold"),
-        strip.text.y = element_text(size=10, face="bold"))
-DeletionResectionPlotSide
-pdf(paste(outdir, "/", "plots/", plasmid, "_Deletion_Resection_Plot_BreakSide.pdf", sep=""), height = 5, width = 10)
-DeletionResectionPlotSide
-dev.off()
-
-#----------------Deletion Resection - Plot - Mechanism-----------
-DeletionResectionPlotMechanism = ggplot(DelFromBreak)+
-  geom_bar(aes(x=RM_to_break, y=percent, color=Mechanism), position="stack", stat="identity", fill="grey50", width=0.5) +
-  theme_bw()+
-  geom_vline(aes(xintercept = DelFromBreakMean), colour="blue", size=0.75,linetype = "longdash")+
-  #geom_vline(aes(xintercept = median), colour="red", size=0.75,linetype = "longdash",data=distMedian)+
-  scale_y_continuous(name = "Percent Deletions (%)")+  
-  scale_x_continuous(name="Resection/Unwinding Required for SD-MMEJ Action (bp)",
-                     breaks = seq(0, max(DelFromBreak$RM_to_break), by = 2))+
-  theme(axis.text.x=element_text(size=10, face="bold"),
-        axis.text.y=element_text(size=10, face="bold"),
-        axis.title.x=element_text(size=12, face="bold"),
-        axis.title.y=element_text(size=12, face="bold"))+
-  theme(strip.text.x = element_text(size=10, face="bold"),
-        strip.text.y = element_text(size=10, face="bold"))
-DeletionResectionPlotMechanism
-pdf(paste(outdir, "/", "plots/", plasmid, "_Deletion_Resection_Plot_Mechanism.pdf", sep=""), height = 5, width = 10)
-DeletionResectionPlotMechanism
-dev.off()
-
-#----------------Deletion Resection - Plot - Repair Type-----------
-DeletionResectionPlotRepairType = ggplot(DelFromBreak)+
-  geom_bar(aes(x=RM_to_break, y=percent, color=Repair.Type), position="stack", stat="identity", fill="grey50", width=0.5) +
-  theme_bw()+
-  geom_vline(aes(xintercept = DelFromBreakMean), colour="blue", size=0.75,linetype = "longdash")+
-  #geom_vline(aes(xintercept = median), colour="red", size=0.75,linetype = "longdash",data=distMedian)+
-  scale_y_continuous(name = "Percent Deletions (%)")+  
-  scale_x_continuous(name="Resection/Unwinding Required for SD-MMEJ Action (bp)",
-                     breaks = seq(0, max(DelFromBreak$RM_to_break), by = 2))+
-  theme(axis.text.x=element_text(size=10, face="bold"),
-        axis.text.y=element_text(size=10, face="bold"),
-        axis.title.x=element_text(size=12, face="bold"),
-        axis.title.y=element_text(size=12, face="bold"))+
-  theme(strip.text.x = element_text(size=10, face="bold"),
-        strip.text.y = element_text(size=10, face="bold"))
-DeletionResectionPlotRepairType
-pdf(paste(outdir, "/", "plots/", plasmid, "_Deletion_Resection_Plot_Repair_Type.pdf", sep=""), height = 5, width = 10)
-DeletionResectionPlotRepairType
-dev.off()
-
-#----------------Deletion Repeat Motif by Side - Plot - Mechanism---------------
-DelSide = DeletionData2
-DelSideMechPlot = ggplot(DelSide)+
-  geom_bar(aes(x=Break.Side, y=percent_deletion, color=Mechanism), position="stack", stat="identity", fill="grey50") +
-  theme_bw()+
-  scale_y_continuous(name = "Percent Usage (%)")+  
-  scale_x_discrete(name="Side")+
-  theme(axis.text.x=element_text(size=10, face="bold"),
-        axis.text.y=element_text(size=10, face="bold"),
-        axis.title.x=element_text(size=12, face="bold"),
-        axis.title.y=element_text(size=12, face="bold"))+
-  theme(strip.text.x = element_text(size=10, face="bold"),
-        strip.text.y = element_text(size=10, face="bold"))
-DelSideMechPlot
-pdf(paste(outdir, "/", "plots/", plasmid, "_Deletion_Side_Usage_Mech_Plot.pdf", sep=""), height = 5, width = 10)
-DelSideMechPlot
-dev.off()
-
-#----------------Deletion Repeat Motif by Side - Plot - Repair Type---------------
-DelSideTypePlot = ggplot(DelSide)+
-  geom_bar(aes(x=Break.Side, y=percent_deletion, color=Repair.Type), position="stack", stat="identity", fill="grey50") +
-  theme_bw()+
-  scale_y_continuous(name = "Percent Usage (%)")+  
-  scale_x_discrete(name="Side")+
-  theme(axis.text.x=element_text(size=10, face="bold"),
-        axis.text.y=element_text(size=10, face="bold"),
-        axis.title.x=element_text(size=12, face="bold"),
-        axis.title.y=element_text(size=12, face="bold"))+
-  theme(strip.text.x = element_text(size=10, face="bold"),
-        strip.text.y = element_text(size=10, face="bold"))
-DelSideTypePlot
-pdf(paste(outdir, "/", "plots/", plasmid, "_Deletion_Side_Usage_Repair_Type_Plot.pdf", sep=""), height = 5, width = 10)
-DelSideTypePlot
-dev.off()
 
 #----------------Consistency and Inaccurate Repair Plots - Data Manipulation------------------------
 #use the "all" Data Frame or import the _all_SD-MMEJ_consistency.csv
 #all = read.csv("table_outputs/_all_SD-MMEJ_consistency.csv", sep = ",", header = TRUE, row.names=1)
+
+## THIS IS THE SAME PROBLEM WITH "all" colnames
+view(all)
 Consistent = subset(all, CONSISTENCY=="TRUE")
+head()
 ConsistentReads = sum(Consistent$READS)
 Inconsistent = subset(all, CONSISTENCY=="FALSE")
 write.csv(Inconsistent, paste(outdir, "/", "table_outputs/", plasmid, "_Inconsistent_data.csv", sep=""))
@@ -1193,11 +1526,16 @@ write.csv(Inconsistent, paste(outdir, "/", "table_outputs/", plasmid, "_Inconsis
 Inconsistent= read.csv(paste(outdir, "/", "table_outputs/", plasmid, "_Inconsistent_data.csv", sep=""), row.names = 1)
 InconsistentReads = sum(Inconsistent$READS)
 AllInaccurate= rbind(Consistent, Inconsistent)
+head(AllInaccurate)
 AllInaccurate$percent_inaccurate=AllInaccurate$READS/sum(AllInaccurate$READS)*100
 Consistent=subset(AllInaccurate, CONSISTENCY=="TRUE")
 Inconsistent = subset(AllInaccurate, CONSISTENCY=="FALSE")
 RepairType = c("InDel", "MHJ", "ABJ")
 PercentOfInaccurate = aggregate(as.numeric(percent_inaccurate)~REPAIR_TYPE+plasmid,data=AllInaccurate, sum) #Breaks down the types of repair (consistent or not) amongst inaccurate repair events
+
+head(AllInaccurate)
+
+
 colnames(PercentOfInaccurate)[3]="percent_inaccurate"
 PercentInaccurate = aggregate(as.numeric(percent_inaccurate)~plasmid,data=Consistent, sum) #Breaks down percent inaccurate repair that is consistent
 colnames(PercentInaccurate)[2]="percent_inaccurate"
@@ -1206,6 +1544,7 @@ MHJ2 = subset(PercentOfInaccurate, REPAIR_TYPE=="MHJ")
 ABJ2 = subset(PercentOfInaccurate, REPAIR_TYPE=="ABJ")
 RepairTypeOrdered = rbind(Indel2, MHJ2, ABJ2) # ordering in InDel MHJ ABJ order to match all previous presentations of this data
 
+## If there aren't insertions the InDels will be empty
 InDel = subset(AllInaccurate, REPAIR_TYPE=="InDel")
 InDelReads = sum(as.numeric(InDel$READS))
 MHJ = subset(AllInaccurate, REPAIR_TYPE=="MHJ")
@@ -1277,310 +1616,8 @@ pdf(paste(outdir, "/", "plots/", plasmid, "_SD-MMEJ_Consistency_Breakdown_Plot.p
 ConsistencyBreakdownPlot
 dev.off()
 
-#--------------------Primer Distance and Length - Data Manipulation--------------------------
-# csv input - _break.csv exported at end of "Combining Direct Repeat and Reverse Complement Repeat" Section
-#InsBreaks = read.csv(paste(outdir, "/", "table_outputs/", plasmid, "_break.csv", sep=""), row.names = 1)
-InsBreaks = jxn3
-InsBreaks$PG = plasmid
-no_trans = subset(InsBreaks, is_trans=="no")
-#trans = subset(InsBreaks, is_trans=="trans")
-right = subset(no_trans, SIDE=="RIGHT")
-left = subset(no_trans, SIDE=="LEFT")
-right$p1_p2 = right$p1_start-(right$p2_end+1)
-left$p1_p2 = left$p2_start-(left$p1_end+1)
-#trans$p1_p2 = 0
-#dist = rbind(right,left,trans)
-dist = rbind(right,left)
-dist.nt = subset(dist, mechanism!="Trans")
-dist.nt = subset(dist.nt, !(is.na(dist.nt["p1_length"])))
-lengthMean = data.frame(plasmid=plasmid, mean(dist.nt$p1_length))
-colnames(lengthMean)[2]="mean"
-lengthMedian = data.frame(plasmid=plasmid, median(dist.nt$p1_length))
-colnames(lengthMedian)[2]="median"
-dist.nt$p1_p2_abs = abs(dist.nt$p1_p2)
-distMean = data.frame(plasmid=plasmid, mean(dist.nt$p1_p2_abs))
-colnames(distMean)[2] = "mean"
-distMedian = data.frame(plasmid=plasmid, median(dist.nt$p1_p2_abs))
-colnames(distMedian)[2] = "median"
-len.mean = data.frame(plasmid=plasmid, mean(dist.nt$mh_length))
-colnames(len.mean)[2] = "mean"
-len.median = data.frame(plasmid=plasmid, median(dist.nt$mh_length))
-colnames(len.median)[2] = "median"
 
-PrimerData = jxn3[,c(1,2,33,31,32,40,41,23)]
-colnames(PrimerData)[3]="Primer_Length"
-PrimerDataLeft=subset(PrimerData, SIDE=="LEFT")
-PrimerDataRight=subset(PrimerData, SIDE=="RIGHT")
-PrimerDataLeft$Distance=PrimerDataLeft$p2_start-1-PrimerDataLeft$p1_end
-PrimerDataRight$Distance=PrimerDataRight$p1_start-1-PrimerDataRight$p2_end
-PrimerData=rbind(PrimerDataLeft, PrimerDataRight)
 
-PrimerLength = aggregate(READS~Primer_Length, data=PrimerData, sum)
-PrimerLength$percent=PrimerLength$READS/sum(PrimerLength$READS)*100
-write.csv(PrimerLength, paste(outdir, "/", "table_outputs/", plasmid, "_Primer_Length.csv", sep=""))
-
-PrimerDistance = aggregate(READS~Distance, data=PrimerData, sum)
-PrimerDistance$percent = PrimerDistance$READS/sum(PrimerDistance$READS)*100
-write.csv(PrimerDistance, paste(outdir, "/", "table_outputs/", plasmid, "_Primer_Distance.csv", sep=""))
-
-#--------------------Primer Distance Plot - Inaccurate Reads--------------------------
-PrimerDistancePlotInaccurateReads = ggplot(dist.nt)+
-  geom_bar(aes(x=p1_p2_abs, y=as.numeric(percent_inaccurate), color=mechanism), position="stack", stat="identity", fill="grey50") +
-  theme_bw()+
-  #facet_wrap(~PG, scales="free_y")+
-  geom_vline(aes(xintercept = mean), colour="blue", size=0.75,linetype = "longdash",data=distMean)+
-  geom_vline(aes(xintercept = median), colour="red", size=0.75,linetype = "longdash",data=distMedian)+
-  scale_y_continuous(name = "Percent Inaccurate Reads")+  
-  scale_x_continuous(name="Distance between Primer Pairs (bp)",
-                     breaks = seq(0, 60, by = 2))+
-  theme(axis.text.x=element_text(size=10, face="bold"),
-        axis.text.y=element_text(size=10, face="bold"),
-        axis.title.x=element_text(size=12, face="bold"),
-        axis.title.y=element_text(size=12, face="bold"))+
-  theme(strip.text.x = element_text(size=10, face="bold"),
-        strip.text.y = element_text(size=10, face="bold"))
-PrimerDistancePlotInaccurateReads
-pdf(paste(outdir, "/", "plots/", plasmid, "_Primer_Distance_Plot_Inaccurate_Reads.pdf", sep=""), width=15)
-PrimerDistancePlotInaccurateReads
-dev.off()
-
-#--------------------Primer Distance Plot - Insertion Events--------------------------
-PrimerDistancePlotInsertion = ggplot(dist.nt)+
-  geom_bar(aes(x=p1_p2_abs, y=percent_insertion_jxn, color=mechanism), position="stack", stat="identity", fill="grey50") +
-  theme_bw()+
-  #facet_wrap(~PG, scales="free_y")+
-  geom_vline(aes(xintercept = mean), colour="blue", size=0.75,linetype = "longdash",data=distMean)+
-  geom_vline(aes(xintercept = median), colour="red", size=0.75,linetype = "longdash",data=distMedian)+
-  scale_y_continuous(name = "Percent Insertion Events")+  
-  scale_x_continuous(name="Distance between Primer Pairs (bp)",
-                     breaks = seq(0, 60, by = 2))+
-  theme(axis.text.x=element_text(size=10, face="bold"),
-        axis.text.y=element_text(size=10, face="bold"),
-        axis.title.x=element_text(size=12, face="bold"),
-        axis.title.y=element_text(size=12, face="bold"))+
-  theme(strip.text.x = element_text(size=10, face="bold"),
-        strip.text.y = element_text(size=10, face="bold"))
-PrimerDistancePlotInsertion
-pdf(paste(outdir, "/", "plots/", plasmid, "_Primer_Distance_Plot_Insertion.pdf", sep=""), width=15)
-PrimerDistancePlotInsertion
-dev.off()
-
-#--------------------Primer Length Plots - Insertion Events--------------------------
-PrimerLengthPlotInsertion <- ggplot(dist.nt)+
-  geom_bar(aes(x=p2_length, y=percent_insertion_jxn, color=mechanism), position="stack", stat="identity", fill="grey50") +
-  theme_bw()+
-  #facet_wrap(~PG, scales="free_y")+
-  geom_vline(aes(xintercept = mean), colour="blue", size=0.75,linetype = "longdash",data=lengthMean)+
-  geom_vline(aes(xintercept = median), colour="red", size=0.75,linetype = "longdash",data=lengthMedian)+
-  scale_y_continuous(name = "Percent Insertion Events")+  
-  scale_x_continuous(name="Primer Length (bp)",
-                     breaks = seq(1, 20, by = 1))+
-  theme(axis.text.x=element_text(size=10, face="bold"),
-        axis.text.y=element_text(size=10, face="bold"),
-        axis.title.x=element_text(size=12, face="bold"),
-        axis.title.y=element_text(size=12, face="bold"))+
-  theme(strip.text.x = element_text(size=10, face="bold"),
-        strip.text.y = element_text(size=10, face="bold"))
-PrimerLengthPlotInsertion
-pdf(paste(outdir, "/", "plots/", plasmid, "_Primer_Length_Plot_Insertion.pdf", sep=""), width=15)
-PrimerLengthPlotInsertion
-dev.off()
-
-#----------------------------Microhomology Length Plot - Inaccurate Reads----------
-MHevents = subset(all, all$MH_Length>0)
-MHlength = aggregate(as.numeric(percent_inaccurate)~MH_Length, data=MHevents, sum)
-colnames(MHlength)[2]="percent_inaccurate"
-
-MHLengthPlot = ggplot(MHlength)+
-  geom_bar(aes(x=MH_Length, y=percent_inaccurate), position="stack", stat="identity", colour="black", fill="grey50") +
-  theme_bw()+
-  #geom_vline(aes(xintercept = mean), colour="blue", size=0.75,linetype = "longdash",data=len.mean)+
-  #geom_vline(aes(xintercept = median), colour="red", size=0.75,linetype = "longdash",data=len.median)+
-  scale_y_continuous(name = "Percent Inaccurate Reads")+
-  scale_x_continuous(name="Microhomology (bp)",
-                     breaks = seq(1, 100, by = 1))+
-  theme(axis.text.x=element_text(size=10, face="bold"),
-        axis.text.y=element_text(size=10, face="bold"),
-        axis.title.x=element_text(size=12, face="bold"),
-        axis.title.y=element_text(size=12, face="bold"))+
-  theme(strip.text.x = element_text(size=10, face="bold"),
-        strip.text.y = element_text(size=10, face="bold"))
-MHLengthPlot
-pdf(paste(outdir, "/", "plots/", plasmid, "_MH_Length_Plot_Consistent_InaccurateReads.pdf", sep=""), width = 10)
-MHLengthPlot
-dev.off()
-
-#----------------------------Microhomology Length Plot - Deletion Events----------
-MHevents = subset(all, all$MH_Length>0)
-MHevents$percent_deletion = MHevents$READS/sum(MHevents$READS)*100
-MHlengthdeletion = aggregate(as.numeric(percent_deletion)~MH_Length, data=MHevents, sum)
-colnames(MHlengthdeletion)[2]="percent_deletion"
-
-MHLengthPlotDeletion = ggplot(MHlengthdeletion)+
-  geom_bar(aes(x=MH_Length, y=percent_deletion), position="stack", stat="identity", colour="black", fill="grey50") +
-  theme_bw()+
-  #geom_vline(aes(xintercept = mean), colour="blue", size=0.75,linetype = "longdash",data=len.mean)+
-  #geom_vline(aes(xintercept = median), colour="red", size=0.75,linetype = "longdash",data=len.median)+
-  scale_y_continuous(name = "Percent SD-MMEJ Consistent Deletions")+
-  scale_x_continuous(name="Microhomology (bp)",
-                     breaks = seq(1, 100, by = 1))+
-  theme(axis.text.x=element_text(size=10, face="bold"),
-        axis.text.y=element_text(size=10, face="bold"),
-        axis.title.x=element_text(size=12, face="bold"),
-        axis.title.y=element_text(size=12, face="bold"))+
-  theme(strip.text.x = element_text(size=10, face="bold"),
-        strip.text.y = element_text(size=10, face="bold"))
-MHLengthPlotDeletion
-pdf(paste(outdir, "/", "plots/", plasmid, "_MH_Length_Plot_Deletion_Consistent.pdf", sep=""), width = 10)
-MHLengthPlot
-dev.off()
-
-#----------------------------Microhomology Usage Plot- Inaccurate Reads----------
-MHusage = aggregate(as.numeric(percent_inaccurate)~MICROHOMOLOGY, data=MHevents, sum)
-colnames(MHusage)[2]="percent_inaccurate"
-microhomology = MHusage$MICROHOMOLOGY
-
-MHusagePlot <- ggplot(MHusage)+
-  geom_histogram(aes(x=MICROHOMOLOGY, y=percent_inaccurate), position="stack", stat="identity", colour="black", fill="grey50") +
-  theme_bw()+
-  # facet_wrap(~PG, scales="free_y")+
-  # geom_vline(aes(xintercept = mean), colour="blue", size=0.75,linetype = "longdash",data=len.mean)+
-  # geom_vline(aes(xintercept = median), colour="red", size=0.75,linetype = "longdash",data=len.median)+
-  # ggtitle("Left Synthesis")+
-  scale_y_continuous(name = "Percent Inaccurate")+  
-  scale_x_discrete(name="Microhomology")+
-  theme(plot.title = element_text(color="grey28", size=12),
-        axis.text.x=element_text(size=10, face="bold"),
-        axis.text.y=element_text(size=10, face="bold"),
-        axis.title.x=element_text(size=12, face="bold"),
-        axis.title.y=element_text(size=12, face="bold"))+
-  theme(strip.text.x = element_text(size=10, face="bold"),
-        strip.text.y = element_text(size=10, face="bold"))
-MHusagePlot
-pdf(paste(outdir, "/", "plots/", plasmid, "_MH_Usage_Plot_InaccurateReads.pdf", sep=""), width = 15)
-MHusagePlot
-dev.off()
-
-#----------------------------Microhomology Usage Plot - Deletion Events----------
-MHusageDeletion = aggregate(as.numeric(percent_deletion)~MICROHOMOLOGY, data=MHevents, sum)
-colnames(MHusageDeletion)[2]="percent_deletion"
-microhomology = MHusageDeletion$MICROHOMOLOGY
-write.csv(MHusageDeletion, paste(outdir, "/", "table_outputs/", plasmid, "_MH_usage_consistent_deletions.csv", sep=""))
-
-MHusagePlotDeletion <- ggplot(MHusageDeletion)+
-  geom_histogram(aes(x=MICROHOMOLOGY, y=percent_deletion), position="stack", stat="identity", colour="black", fill="grey50") +
-  theme_bw()+
-  # facet_wrap(~PG, scales="free_y")+
-  # geom_vline(aes(xintercept = mean), colour="blue", size=0.75,linetype = "longdash",data=len.mean)+
-  # geom_vline(aes(xintercept = median), colour="red", size=0.75,linetype = "longdash",data=len.median)+
-  # ggtitle("Left Synthesis")+
-  scale_y_continuous(name = "Percent SD-MMEJ Consistent Deletions")+  
-  scale_x_discrete(name="Microhomology")+
-  theme(plot.title = element_text(color="grey28", size=12),
-        axis.text.x=element_text(size=10, face="bold"),
-        axis.text.y=element_text(size=10, face="bold"),
-        axis.title.x=element_text(size=12, face="bold"),
-        axis.title.y=element_text(size=12, face="bold"))+
-  theme(strip.text.x = element_text(size=10, face="bold"),
-        strip.text.y = element_text(size=10, face="bold"))
-MHusagePlotDeletion
-pdf(paste(outdir, "/", "plots/", plasmid, "_MH_Usage_Plot_Consistent_Deletions.pdf", sep=""), width = 15)
-MHusagePlotDeletion
-dev.off()
-
-#--------------------------Insertion Length Plot - All----------------
-AllInsertions = subset(all, CLASS == "Insertion")
-ReadsAggInsertionLength = aggregate(READS~INSERTION_LENGTH + CONSISTENCY, data=AllInsertions, sum)
-ReadsAggInsertionLength$Percent_Insertion = ReadsAggInsertionLength$READS/ sum(ReadsAggInsertionLength$READS)*100
-ReadsAggInsertionLength$READSxLength = ReadsAggInsertionLength$READS * ReadsAggInsertionLength$INSERTION_LENGTH
-AllInsLenMean = sum(ReadsAggInsertionLength$READSxLength)/sum(ReadsAggInsertionLength$READS)
-
-ReadsAggInsertionLength = ReadsAggInsertionLength[-c(24),]
-
-len.median = data.frame(plasmid="Iw7_Flex", median(dist.nt$mh_length))
-
-AllInsertionLengthPlot = ggplot(ReadsAggInsertionLength) + geom_bar(aes(x=INSERTION_LENGTH, y=Percent_Insertion, fill= CONSISTENCY), stat="identity", colour="black")+
-  theme_bw()+scale_y_continuous(name = "Percent of Insertions")+ scale_x_continuous(name = "Insertion Length (bp)", breaks = seq(0, max(ReadsAggInsertionLength$INSERTION_LENGTH+1), by = 2))+
-  #facet_wrap(~"WT", scales="free_y")+
-  theme(plot.title = element_text(color="grey28"),
-        axis.text.x=element_text(size=10, face="bold"),
-        axis.text.y=element_text(size=10, face="bold"),
-        axis.title.x=element_text(size=12, face="bold"),
-        axis.title.y=element_text(size=12, face="bold"))+
-  theme(strip.text.x = element_text(size=10, face="bold"),
-        strip.text.y = element_text(size=10, face="bold"))+
-  geom_vline(aes(xintercept = AllInsLenMean), colour="blue", size=0.75,linetype = "longdash")
-  #geom_vline(aes(xintercept = AllInsMedian), colour="red", size=0.75,linetype = "longdash")
-AllInsertionLengthPlot
-pdf(paste(outdir, "/", "plots/", plasmid, "_Insertion_Length_Plot_All.pdf", sep=""), width = 20)
-AllInsertionLengthPlot
-dev.off()
-
-#--------------------------Insertion Length Plot - Consistent----------------
-ConsistentInsertion = subset(all, CLASS == "Insertion" & CONSISTENCY =="TRUE")
-ConsistentReadsAggInsertionLength = aggregate(READS~INSERTION_LENGTH, data=ConsistentInsertion, sum)
-ConsistentReadsAggInsertionLength$Percent_Insertion = ConsistentReadsAggInsertionLength$READS / sum(ConsistentReadsAggInsertionLength$READS)*100
-ConsistentReadsAggInsertionLength$READSxLength = ConsistentReadsAggInsertionLength$READS * ConsistentReadsAggInsertionLength$INSERTION_LENGTH
-ConsInsLenMean = sum(ConsistentReadsAggInsertionLength$READSxLength)/sum(ConsistentReadsAggInsertionLength$READS)
-
-ConsistentInsertionLengthPlot = ggplot(ConsistentReadsAggInsertionLength) + geom_bar(aes(x=INSERTION_LENGTH, y=Percent_Insertion), stat="identity", colour="black", fill="grey50")+
-  theme_bw()+scale_y_continuous(name = "Percent of SD-MMEJ Consistent Insertions")+ scale_x_continuous(name = "Insertion Length (bp)", breaks = seq(1, max(ReadsAggInsertionLength$INSERTION_LENGTH), by = 1))+
-  theme(plot.title = element_text(color="grey28", size=12),
-        axis.text.x=element_text(size=10, face="bold"),
-        axis.text.y=element_text(size=10, face="bold"),
-        axis.title.x=element_text(size=12, face="bold"),
-        axis.title.y=element_text(size=12, face="bold"))+
-  theme(strip.text.x = element_text(size=10, face="bold"),
-        strip.text.y = element_text(size=10, face="bold"))+
-  geom_vline(aes(xintercept = ConsInsLenMean), colour="blue", size=0.75,linetype = "longdash")
-ConsistentInsertionLengthPlot
-pdf(paste(outdir, "/", "plots/", plasmid, "_Insertion_Length_Plot_Consistent.pdf", sep=""), width = 15)
-ConsistentInsertionLengthPlot
-dev.off()
-
-#--------------------------Deletion Length Plot - All----------------
-deletions$deletion_length = abs(deletions$TOTAL_DELETION)
-AllDeletionsAggLength = aggregate(READS~deletion_length + CONSISTENCY, data=deletions, sum)
-AllDeletionsAggLength$Percent_Deletion = AllDeletionsAggLength$READS/sum(AllDeletionsAggLength$READS)*100
-AllDeletionsAggLength$READSxLength = AllDeletionsAggLength$READS * AllDeletionsAggLength$deletion_length
-AllDeletionsAggMean = sum(AllDeletionsAggLength$READSxLength)/sum(AllDeletionsAggLength$READS)
-
-AllDeletionsLengthPlot = ggplot(AllDeletionsAggLength)+geom_bar(aes(x=deletion_length, y=Percent_Deletion, fill= CONSISTENCY), stat="identity", colour="black")+
-  theme_bw()+scale_y_continuous(name = "Percent of Deletions")+ scale_x_continuous(name = "Deletion Length (bp)", breaks = seq(0, max(AllDeletionsAggLength$deletion_length), by =2))+
-  theme(plot.title = element_text(color="grey28", size=12),
-        axis.text.x=element_text(size=10, face="bold"),
-        axis.text.y=element_text(size=10, face="bold"),
-        axis.title.x=element_text(size=12, face="bold"),
-        axis.title.y=element_text(size=12, face="bold"))+
-  theme(strip.text.x = element_text(size=10, face="bold"),
-        strip.text.y = element_text(size=10, face="bold"))+
-  geom_vline(aes(xintercept = AllDeletionsAggMean), colour="blue", size=0.75,linetype = "longdash")
-AllDeletionsLengthPlot
-pdf(paste(outdir, "/", "plots/", plasmid, "_Deletion_Length_Plot_All.pdf", sep=""), width = 20)
-AllDeletionsLengthPlot
-dev.off()
-
-#--------------------------Deletion Length Plot - Consistent----------------
-ConsistentDeletions = subset(deletions, CONSISTENCY=="TRUE")
-ConsistentDeletionsAggLength = aggregate(READS~deletion_length, data=ConsistentDeletions, sum)
-ConsistentDeletionsAggLength$Percent_Deletion = ConsistentDeletionsAggLength$READS/sum(ConsistentDeletionsAggLength$READS)*100
-ConsistentDeletionsAggLength$READSxLength = ConsistentDeletionsAggLength$READS * ConsistentDeletionsAggLength$deletion_length
-ConDelAggMean = sum(ConsistentDeletionsAggLength$READSxLength)/sum(ConsistentDeletionsAggLength$READS)
-
-ConsistentDeletionsLengthPlot = ggplot(ConsistentDeletionsAggLength)+geom_bar(aes(x=deletion_length, y=Percent_Deletion), stat="identity", colour="black", fill="grey50")+
-  theme_bw()+scale_y_continuous(name = "Percent of SD-MMEJ Consistent Deletions")+ scale_x_continuous(name = "Deletion Length (bp)", breaks = seq(0, max(ConsistentDeletionsAggLength$deletion_length), by = 2))+
-  theme(plot.title = element_text(color="grey28", size=12),
-        axis.text.x=element_text(size=10, face="bold"),
-        axis.text.y=element_text(size=10, face="bold"),
-        axis.title.x=element_text(size=12, face="bold"),
-        axis.title.y=element_text(size=12, face="bold"))+
-  theme(strip.text.x = element_text(size=10, face="bold"),
-        strip.text.y = element_text(size=10, face="bold"))+
-  geom_vline(aes(xintercept = ConDelAggMean), colour="blue", size=0.75,linetype = "longdash")
-ConsistentDeletionsLengthPlot
-pdf(paste(outdir, "/", "plots/", plasmid, "_Deletion_Length_Plot_Consistent.pdf", sep=""), width = 20)
-ConsistentDeletionsLengthPlot
-dev.off()
 
 #-------------------------Deletion Stopper Plot - Data Manipulation----------
 #Project for another day
