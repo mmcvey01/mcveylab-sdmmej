@@ -24,8 +24,8 @@ if (length(args)<2) {
 }
 
 #In order to debug, uncomment this and comment the command line information
-outdir="/Users/rbator01/Library/CloudStorage/Box-Box/bioinformatics_research_technology/rt_bioinformatics_consultations/mcvey_lab_rt_bioinformatics/terrence_dna_repair/HiSeq_CRISPR_Data/renamed_files/R1_output/"
-plasmid="R1"
+outdir="/Users/rbator01/Library/CloudStorage/Box-Box/bioinformatics_research_technology/rt_bioinformatics_consultations/mcvey_lab_rt_bioinformatics/terrence_dna_repair/HiSeq_CRISPR_Data/renamed_files/R10_output/"
+plasmid="R10"
 
 #-----------------------Read In Data Frames--------------------------------------
 
@@ -101,7 +101,6 @@ CombinedCurated = rbind(accurate,inaccurate)
 
 #reorganizing data by repair event classification
 deletions = subset(CombinedCurated, CLASS_final=="deletion")
-head(deletions)
 complex = subset(CombinedCurated, CLASS_final=="complex")
 insertions = subset(CombinedCurated, CLASS_final=="insertion")
 exact = subset(CombinedCurated, CLASS_final=="exact")
@@ -134,11 +133,10 @@ InsertsComplex$percent = InsComMerge$percent
 InsertsComplex$percent_inaccurate = InsComMerge$percent_inaccurate
 
 # these tables can be empty
-InsertsComplex$REPAIR_TYPE = "InDel"
-InsertsComplex$CLASS = "Insertion"
-
-# try( {InsertsComplex$REPAIR_TYPE = "InDel"}, silent=TRUE)
-# try( {InsertsComplex$CLASS = "Insertion"}, silent=TRUE)
+#InsertsComplex$REPAIR_TYPE = "InDel"
+#InsertsComplex$CLASS = "Insertion"
+#try( {InsertsComplex$REPAIR_TYPE = "InDel"}, silent=TRUE)
+#try( {InsertsComplex$CLASS = "Insertion"}, silent=TRUE)
 
 #added this next if statement, this leads to the "all" data frame getting created
 #if there are insertions, it runs as normal, if not a data frame containing the two extra columns that couldn't get added
@@ -170,16 +168,14 @@ del1$percent_inaccurate <- deletionsMerged$percent_inaccurate
 del1$REPAIR_TYPE <- deletionsMerged$REPAIR_TYPE
 del1$CLASS = deletionsMerged$CLASS_final
 deletions <- cbind(del1, deletionsMerged[,7:9])
-names(deletions)
-names(InsertsComplex)
 
-## can't do this if one is empty, there aren't the same colnames
+#names(deletions)
+#names(InsertsComplex)
+
+## rename deletions columns because the case is different, they should be the same columns
 names(deletions) <- names(InsertsComplex)
 
-
 all <- rbind(InsertsComplex,deletions)
-view(all)
-
 all$plasmid = plasmid
 
 write.csv(all,paste(outdir, "/", "table_outputs/",plasmid,"_all_SD-MMEJ_consistency.csv", sep=""))
@@ -720,7 +716,7 @@ if (nrow(AllRepeats)>0){
                                 fill=percent_insertion_jxn, linetype=mechanism),colour="black",stat = "identity",width=.8)+geom_hline(yintercept = BreakPointFromLeft+0.5, colour="red", size=0.6)
   PrimerPlot
   pdf(paste(outdir, "/", "plots/", plasmid, "_Ins_Primer_Plot.pdf", sep=""), height = 5, width = 10)
-  PrimerPlot
+  print(PrimerPlot)
   dev.off()
 
   #----------------Insertion Repeat Motif Plot - Data Manipulation-------------------
@@ -793,7 +789,7 @@ if (nrow(AllRepeats)>0){
                  width=.8,lwd=.5)+ geom_hline(yintercept = BreakPointFromLeft+0.5, colour="red", size=0.75)
   RepeatMotifPlot
   pdf(paste(outdir, "/", "plots/", plasmid, "_Insertion_Repeat_Motif_Plot.pdf", sep=""), height = 5, width = 10)
-  RepeatMotifPlot
+  print(RepeatMotifPlot)
   dev.off()
   
   #----------------Insertion Resection - Data Manipulation-----------
@@ -833,7 +829,7 @@ if (nrow(AllRepeats)>0){
           strip.text.y = element_text(size=10, face="bold"))
   InsertionResectionPlotSide
   pdf(paste(outdir, "/", "plots/", plasmid, "_Insertion_Resection_Plot_Side.pdf", sep=""), height = 5, width = 10)
-  InsertionResectionPlotSide
+  print(InsertionResectionPlotSide)
   dev.off()
   
   #----------------Insertion Resections - Plot - Mechanism-----------
@@ -853,7 +849,7 @@ if (nrow(AllRepeats)>0){
           strip.text.y = element_text(size=10, face="bold"))
   InsertionResectionPlotMechanism
   pdf(paste(outdir, "/", "plots/", plasmid, "_Insertion_Resection_Plot_Mechanism.pdf", sep=""), height = 5, width = 10)
-  InsertionResectionPlotMechanism
+  print(InsertionResectionPlotMechanism)
   dev.off()
   
   #----------------Insertion Flap Plot - Data Manipulation-----------------------------------
@@ -893,7 +889,7 @@ if (nrow(AllRepeats)>0){
   
   InsFlapPlot
   pdf(paste(outdir, "/", "plots/", plasmid, "_Insertion_Flap_Plot.pdf", sep=""), height = 5, width = 10)
-  InsFlapPlot
+  print(InsFlapPlot)
   dev.off()
   
   #----------------Insertion Repeat Motif by Side - Plot---------------
@@ -911,7 +907,7 @@ if (nrow(AllRepeats)>0){
           strip.text.y = element_text(size=10, face="bold"))
   InsSidePlot
   pdf(paste(outdir, "/", "plots/", plasmid, "_Insertion_Side_Usage_Plot.pdf", sep=""), height = 5, width = 10)
-  InsSidePlot
+  print(InsSidePlot)
   dev.off()
   
   ## Second set of insertion plots
@@ -979,7 +975,7 @@ if (nrow(AllRepeats)>0){
           strip.text.y = element_text(size=10, face="bold"))
   PrimerDistancePlotInaccurateReads
   pdf(paste(outdir, "/", "plots/", plasmid, "_Primer_Distance_Plot_Inaccurate_Reads.pdf", sep=""), width=15)
-  PrimerDistancePlotInaccurateReads
+  print(PrimerDistancePlotInaccurateReads)
   dev.off()
   
   #--------------------Primer Distance Plot - Insertion Events--------------------------
@@ -1000,7 +996,7 @@ if (nrow(AllRepeats)>0){
           strip.text.y = element_text(size=10, face="bold"))
   PrimerDistancePlotInsertion
   pdf(paste(outdir, "/", "plots/", plasmid, "_Primer_Distance_Plot_Insertion.pdf", sep=""), width=15)
-  PrimerDistancePlotInsertion
+  print(PrimerDistancePlotInsertion)
   dev.off()
   
   #--------------------Primer Length Plots - Insertion Events--------------------------
@@ -1021,7 +1017,7 @@ if (nrow(AllRepeats)>0){
           strip.text.y = element_text(size=10, face="bold"))
   PrimerLengthPlotInsertion
   pdf(paste(outdir, "/", "plots/", plasmid, "_Primer_Length_Plot_Insertion.pdf", sep=""), width=15)
-  PrimerLengthPlotInsertion
+  print(PrimerLengthPlotInsertion)
   dev.off()
   
   ## Third set of insertion plots
@@ -1051,7 +1047,7 @@ if (nrow(AllRepeats)>0){
   #geom_vline(aes(xintercept = AllInsMedian), colour="red", size=0.75,linetype = "longdash")
   AllInsertionLengthPlot
   pdf(paste(outdir, "/", "plots/", plasmid, "_Insertion_Length_Plot_All.pdf", sep=""), width = 20)
-  AllInsertionLengthPlot
+  print(AllInsertionLengthPlot)
   dev.off()
   
   #--------------------------Insertion Length Plot - Consistent----------------
@@ -1073,7 +1069,7 @@ if (nrow(AllRepeats)>0){
     geom_vline(aes(xintercept = ConsInsLenMean), colour="blue", size=0.75,linetype = "longdash")
   ConsistentInsertionLengthPlot
   pdf(paste(outdir, "/", "plots/", plasmid, "_Insertion_Length_Plot_Consistent.pdf", sep=""), width = 15)
-  ConsistentInsertionLengthPlot
+  print(ConsistentInsertionLengthPlot)
   dev.off()
 }
 
@@ -1192,7 +1188,7 @@ if (nrow(del) > 0){
     geom_hline(yintercept = BreakPointFromLeft+0.5, colour="red", size=0.75)
   DelMotifPlot
   pdf(paste(outdir, "/", "plots/", plasmid, "_Deletion_Repeat_Motif.pdf", sep=""), height = 7, width = 10)
-  DelMotifPlot
+  print(DelMotifPlot)
   dev.off()
   
   #----------------Deletion Flap Plot - Data Manipulation-----------------------------------
@@ -1236,13 +1232,21 @@ if (nrow(del) > 0){
   
   DelFlapMHJPlot
   pdf(paste(outdir, "/", "plots/", plasmid, "_Deletion_Flap_MHJ_Plot.pdf", sep=""), height = 5, width = 10)
-  DelFlapMHJPlot
+  print(DelFlapMHJPlot)
   dev.off()
   
   #----------------Deletion Flap Plot - ABJ Plot-----------------------------------
   rect_left <- c(43.5,53.5,63.5,73.5,83.5,93.5,103.5,113.5,123.5,133.5,143.5,153.5,163.5,173.5,183.5,193.5,203.5)
+  
+  try({
+    ## error here
+  # Error in min(DelFlapABJ$LeftFlap - 1.5):max(DelFlapABJ$RightFlap + 1.5) : 
+  # result would be too long a vector
+  # is becaue DelFlapABJ$LeftFlap = 0 and DelFlapABJ$RightFlap = 0
   DelFlapABJPlotBreaks = min(DelFlapABJ$LeftFlap-1.5):max(DelFlapABJ$RightFlap+1.5)
+  
   DelFlapABJPlotLabel = dput(as.character(referenceSplit[DelFlapABJPlotBreaks]))
+  
   DelFlapABJPlot <- ggplot()+
     geom_boxplot(data=DelFlapABJ, aes(x=FlapID, ymin = LeftFlap, lower = LeftFlap, middle = LeftFlap, 
                                       upper = RightFlap, ymax = RightFlap,fill=percent_flap, linetype=Mechanism),
@@ -1263,8 +1267,9 @@ if (nrow(del) > 0){
   
   DelFlapABJPlot
   pdf(paste(outdir, "/", "plots/", plasmid, "_Deletion_Flap_ABJ_Plot.pdf", sep=""), height = 5, width = 10)
-  DelFlapABJPlot
+  print(DelFlapABJPlot)
   dev.off()
+  }, silent=TRUE)
   
   #----------------Deletion Resection - Data Manipulation-----------
   #To generate a plot of the furthest identifiable point of resection or duplex unwinding = furthest from break repeat motif
@@ -1295,7 +1300,7 @@ if (nrow(del) > 0){
           strip.text.y = element_text(size=10, face="bold"))
   DeletionResectionPlotSide
   pdf(paste(outdir, "/", "plots/", plasmid, "_Deletion_Resection_Plot_BreakSide.pdf", sep=""), height = 5, width = 10)
-  DeletionResectionPlotSide
+  print(DeletionResectionPlotSide)
   dev.off()
   
   #----------------Deletion Resection - Plot - Mechanism-----------
@@ -1315,7 +1320,7 @@ if (nrow(del) > 0){
           strip.text.y = element_text(size=10, face="bold"))
   DeletionResectionPlotMechanism
   pdf(paste(outdir, "/", "plots/", plasmid, "_Deletion_Resection_Plot_Mechanism.pdf", sep=""), height = 5, width = 10)
-  DeletionResectionPlotMechanism
+  print(DeletionResectionPlotMechanism)
   dev.off()
   
   #----------------Deletion Resection - Plot - Repair Type-----------
@@ -1335,7 +1340,7 @@ if (nrow(del) > 0){
           strip.text.y = element_text(size=10, face="bold"))
   DeletionResectionPlotRepairType
   pdf(paste(outdir, "/", "plots/", plasmid, "_Deletion_Resection_Plot_Repair_Type.pdf", sep=""), height = 5, width = 10)
-  DeletionResectionPlotRepairType
+  print(DeletionResectionPlotRepairType)
   dev.off()
   
   #----------------Deletion Repeat Motif by Side - Plot - Mechanism---------------
@@ -1353,7 +1358,7 @@ if (nrow(del) > 0){
           strip.text.y = element_text(size=10, face="bold"))
   DelSideMechPlot
   pdf(paste(outdir, "/", "plots/", plasmid, "_Deletion_Side_Usage_Mech_Plot.pdf", sep=""), height = 5, width = 10)
-  DelSideMechPlot
+  print(DelSideMechPlot)
   dev.off()
   
   #----------------Deletion Repeat Motif by Side - Plot - Repair Type---------------
@@ -1370,7 +1375,7 @@ if (nrow(del) > 0){
           strip.text.y = element_text(size=10, face="bold"))
   DelSideTypePlot
   pdf(paste(outdir, "/", "plots/", plasmid, "_Deletion_Side_Usage_Repair_Type_Plot.pdf", sep=""), height = 5, width = 10)
-  DelSideTypePlot
+  print(DelSideTypePlot)
   dev.off()
   
   
@@ -1397,7 +1402,7 @@ if (nrow(del) > 0){
           strip.text.y = element_text(size=10, face="bold"))
   MHLengthPlot
   pdf(paste(outdir, "/", "plots/", plasmid, "_MH_Length_Plot_Consistent_InaccurateReads.pdf", sep=""), width = 10)
-  MHLengthPlot
+  print(MHLengthPlot)
   dev.off()
   
   #----------------------------Microhomology Length Plot - Deletion Events----------
@@ -1422,7 +1427,7 @@ if (nrow(del) > 0){
           strip.text.y = element_text(size=10, face="bold"))
   MHLengthPlotDeletion
   pdf(paste(outdir, "/", "plots/", plasmid, "_MH_Length_Plot_Deletion_Consistent.pdf", sep=""), width = 10)
-  MHLengthPlot
+  print(MHLengthPlot)
   dev.off()
   
   #----------------------------Microhomology Usage Plot- Inaccurate Reads----------
@@ -1448,7 +1453,7 @@ if (nrow(del) > 0){
           strip.text.y = element_text(size=10, face="bold"))
   MHusagePlot
   pdf(paste(outdir, "/", "plots/", plasmid, "_MH_Usage_Plot_InaccurateReads.pdf", sep=""), width = 15)
-  MHusagePlot
+  print(MHusagePlot)
   dev.off()
   
   #----------------------------Microhomology Usage Plot - Deletion Events----------
@@ -1475,7 +1480,7 @@ if (nrow(del) > 0){
           strip.text.y = element_text(size=10, face="bold"))
   MHusagePlotDeletion
   pdf(paste(outdir, "/", "plots/", plasmid, "_MH_Usage_Plot_Consistent_Deletions.pdf", sep=""), width = 15)
-  MHusagePlotDeletion
+  print(MHusagePlotDeletion)
   dev.off()
   
   
@@ -1498,7 +1503,7 @@ if (nrow(del) > 0){
     geom_vline(aes(xintercept = AllDeletionsAggMean), colour="blue", size=0.75,linetype = "longdash")
   AllDeletionsLengthPlot
   pdf(paste(outdir, "/", "plots/", plasmid, "_Deletion_Length_Plot_All.pdf", sep=""), width = 20)
-  AllDeletionsLengthPlot
+  print(AllDeletionsLengthPlot)
   dev.off()
   
   #--------------------------Deletion Length Plot - Consistent----------------
@@ -1520,7 +1525,7 @@ if (nrow(del) > 0){
     geom_vline(aes(xintercept = ConDelAggMean), colour="blue", size=0.75,linetype = "longdash")
   ConsistentDeletionsLengthPlot
   pdf(paste(outdir, "/", "plots/", plasmid, "_Deletion_Length_Plot_Consistent.pdf", sep=""), width = 20)
-  ConsistentDeletionsLengthPlot
+  print(ConsistentDeletionsLengthPlot)
   dev.off()
 }
 
@@ -1528,10 +1533,7 @@ if (nrow(del) > 0){
 #use the "all" Data Frame or import the _all_SD-MMEJ_consistency.csv
 #all = read.csv("table_outputs/_all_SD-MMEJ_consistency.csv", sep = ",", header = TRUE, row.names=1)
 
-## THIS IS THE SAME PROBLEM WITH "all" colnames
-view(all)
 Consistent = subset(all, CONSISTENCY=="TRUE")
-head()
 ConsistentReads = sum(Consistent$READS)
 Inconsistent = subset(all, CONSISTENCY=="FALSE")
 write.csv(Inconsistent, paste(outdir, "/", "table_outputs/", plasmid, "_Inconsistent_data.csv", sep=""))
@@ -1539,16 +1541,11 @@ write.csv(Inconsistent, paste(outdir, "/", "table_outputs/", plasmid, "_Inconsis
 Inconsistent= read.csv(paste(outdir, "/", "table_outputs/", plasmid, "_Inconsistent_data.csv", sep=""), row.names = 1)
 InconsistentReads = sum(Inconsistent$READS)
 AllInaccurate= rbind(Consistent, Inconsistent)
-head(AllInaccurate)
 AllInaccurate$percent_inaccurate=AllInaccurate$READS/sum(AllInaccurate$READS)*100
 Consistent=subset(AllInaccurate, CONSISTENCY=="TRUE")
 Inconsistent = subset(AllInaccurate, CONSISTENCY=="FALSE")
 RepairType = c("InDel", "MHJ", "ABJ")
 PercentOfInaccurate = aggregate(as.numeric(percent_inaccurate)~REPAIR_TYPE+plasmid,data=AllInaccurate, sum) #Breaks down the types of repair (consistent or not) amongst inaccurate repair events
-
-head(AllInaccurate)
-
-
 colnames(PercentOfInaccurate)[3]="percent_inaccurate"
 
 #adding if statements to address InaccurateRepairPlot error I was expecting to happen when a class of repair events don't exist
@@ -1613,7 +1610,7 @@ write.csv(AllRepair, paste(outdir, "/", "table_outputs/", plasmid, "_All_Repair_
 #----------------Consistency and Inaccurate Repair Plots------------------------
 #this plot only runs if all 3 repair types (InDel, MHJ, ABJ) exist or if ABJ and MHJs exist. 
 #If we only have ABJ or MHJ, this plot is pointless so it gets skipped.
-if (nrow(PercentOfInaccurate)=3) {
+if (nrow(PercentOfInaccurate)==3) {
   InaccurateRepairPlot = ggplot(PercentOfInaccurate, aes(x=plasmid, y=percent_inaccurate, fill=REPAIR_TYPE, label=REPAIR_TYPE))+ 
     geom_bar(position="stack", stat="identity", colour="black")+
     theme_classic(base_size = 9)+ geom_text(position = position_stack(vjust=0.5), color=c("white","black","black"))+
@@ -1624,7 +1621,7 @@ if (nrow(PercentOfInaccurate)=3) {
           axis.title.y=element_text(size=10, face="bold"))
   InaccurateRepairPlot
   pdf(paste(outdir, "/", "plots/", plasmid, "_Inaccurate_Repair_Plot_All.pdf",sep=""), width=5)
-  InaccurateRepairPlot
+  print(InaccurateRepairPlot)
   dev.off()
 }
 
@@ -1664,8 +1661,6 @@ ConsistencyBreakdownPlot
 pdf(paste(outdir, "/", "plots/", plasmid, "_SD-MMEJ_Consistency_Breakdown_Plot.pdf", sep=""))
 ConsistencyBreakdownPlot
 dev.off()
-
-
 
 
 #-------------------------Deletion Stopper Plot - Data Manipulation----------
