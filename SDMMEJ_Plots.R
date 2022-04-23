@@ -1427,7 +1427,7 @@ if (nrow(del) > 0){
           strip.text.y = element_text(size=10, face="bold"))
   MHLengthPlotDeletion
   pdf(paste(outdir, "/", "plots/", plasmid, "_MH_Length_Plot_Deletion_Consistent.pdf", sep=""), width = 10)
-  print(MHLengthPlot)
+  print(MHLengthPlotDeletion)
   dev.off()
   
   #----------------------------Microhomology Usage Plot- Inaccurate Reads----------
