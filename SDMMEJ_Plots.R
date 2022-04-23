@@ -24,8 +24,8 @@ if (length(args)<2) {
 }
 
 #In order to debug, uncomment this and comment the command line information
-outdir="/Users/rbator01/Library/CloudStorage/Box-Box/bioinformatics_research_technology/rt_bioinformatics_consultations/mcvey_lab_rt_bioinformatics/terrence_dna_repair/HiSeq_CRISPR_Data/renamed_files/R1_output/"
-plasmid="R1"
+outdir="/Users/rbator01/Library/CloudStorage/Box-Box/bioinformatics_research_technology/rt_bioinformatics_consultations/mcvey_lab_rt_bioinformatics/terrence_dna_repair/HiSeq_CRISPR_Data/renamed_files/R10_output/"
+plasmid="R10"
 
 #-----------------------Read In Data Frames--------------------------------------
 
@@ -101,7 +101,6 @@ CombinedCurated = rbind(accurate,inaccurate)
 
 #reorganizing data by repair event classification
 deletions = subset(CombinedCurated, CLASS_final=="deletion")
-head(deletions)
 complex = subset(CombinedCurated, CLASS_final=="complex")
 insertions = subset(CombinedCurated, CLASS_final=="insertion")
 exact = subset(CombinedCurated, CLASS_final=="exact")
@@ -134,11 +133,10 @@ InsertsComplex$percent = InsComMerge$percent
 InsertsComplex$percent_inaccurate = InsComMerge$percent_inaccurate
 
 # these tables can be empty
-InsertsComplex$REPAIR_TYPE = "InDel"
-InsertsComplex$CLASS = "Insertion"
-
-# try( {InsertsComplex$REPAIR_TYPE = "InDel"}, silent=TRUE)
-# try( {InsertsComplex$CLASS = "Insertion"}, silent=TRUE)
+#InsertsComplex$REPAIR_TYPE = "InDel"
+#InsertsComplex$CLASS = "Insertion"
+#try( {InsertsComplex$REPAIR_TYPE = "InDel"}, silent=TRUE)
+#try( {InsertsComplex$CLASS = "Insertion"}, silent=TRUE)
 
 #added this next if statement, this leads to the "all" data frame getting created
 #if there are insertions, it runs as normal, if not a data frame containing the two extra columns that couldn't get added
@@ -170,16 +168,14 @@ del1$percent_inaccurate <- deletionsMerged$percent_inaccurate
 del1$REPAIR_TYPE <- deletionsMerged$REPAIR_TYPE
 del1$CLASS = deletionsMerged$CLASS_final
 deletions <- cbind(del1, deletionsMerged[,7:9])
-names(deletions)
-names(InsertsComplex)
 
-## can't do this if one is empty, there aren't the same colnames
+#names(deletions)
+#names(InsertsComplex)
+
+## rename deletions columns because the case is different, they should be the same columns
 names(deletions) <- names(InsertsComplex)
 
-
 all <- rbind(InsertsComplex,deletions)
-view(all)
-
 all$plasmid = plasmid
 
 write.csv(all,paste(outdir, "/", "table_outputs/",plasmid,"_all_SD-MMEJ_consistency.csv", sep=""))
@@ -1241,8 +1237,16 @@ if (nrow(del) > 0){
   
   #----------------Deletion Flap Plot - ABJ Plot-----------------------------------
   rect_left <- c(43.5,53.5,63.5,73.5,83.5,93.5,103.5,113.5,123.5,133.5,143.5,153.5,163.5,173.5,183.5,193.5,203.5)
+  
+  try({
+    ## error here
+  # Error in min(DelFlapABJ$LeftFlap - 1.5):max(DelFlapABJ$RightFlap + 1.5) : 
+  # result would be too long a vector
+  # is becaue DelFlapABJ$LeftFlap = 0 and DelFlapABJ$RightFlap = 0
   DelFlapABJPlotBreaks = min(DelFlapABJ$LeftFlap-1.5):max(DelFlapABJ$RightFlap+1.5)
+  
   DelFlapABJPlotLabel = dput(as.character(referenceSplit[DelFlapABJPlotBreaks]))
+  
   DelFlapABJPlot <- ggplot()+
     geom_boxplot(data=DelFlapABJ, aes(x=FlapID, ymin = LeftFlap, lower = LeftFlap, middle = LeftFlap, 
                                       upper = RightFlap, ymax = RightFlap,fill=percent_flap, linetype=Mechanism),
@@ -1265,6 +1269,7 @@ if (nrow(del) > 0){
   pdf(paste(outdir, "/", "plots/", plasmid, "_Deletion_Flap_ABJ_Plot.pdf", sep=""), height = 5, width = 10)
   DelFlapABJPlot
   dev.off()
+  }, silent=TRUE)
   
   #----------------Deletion Resection - Data Manipulation-----------
   #To generate a plot of the furthest identifiable point of resection or duplex unwinding = furthest from break repeat motif
@@ -1528,10 +1533,7 @@ if (nrow(del) > 0){
 #use the "all" Data Frame or import the _all_SD-MMEJ_consistency.csv
 #all = read.csv("table_outputs/_all_SD-MMEJ_consistency.csv", sep = ",", header = TRUE, row.names=1)
 
-## THIS IS THE SAME PROBLEM WITH "all" colnames
-view(all)
 Consistent = subset(all, CONSISTENCY=="TRUE")
-head()
 ConsistentReads = sum(Consistent$READS)
 Inconsistent = subset(all, CONSISTENCY=="FALSE")
 write.csv(Inconsistent, paste(outdir, "/", "table_outputs/", plasmid, "_Inconsistent_data.csv", sep=""))
@@ -1539,16 +1541,11 @@ write.csv(Inconsistent, paste(outdir, "/", "table_outputs/", plasmid, "_Inconsis
 Inconsistent= read.csv(paste(outdir, "/", "table_outputs/", plasmid, "_Inconsistent_data.csv", sep=""), row.names = 1)
 InconsistentReads = sum(Inconsistent$READS)
 AllInaccurate= rbind(Consistent, Inconsistent)
-head(AllInaccurate)
 AllInaccurate$percent_inaccurate=AllInaccurate$READS/sum(AllInaccurate$READS)*100
 Consistent=subset(AllInaccurate, CONSISTENCY=="TRUE")
 Inconsistent = subset(AllInaccurate, CONSISTENCY=="FALSE")
 RepairType = c("InDel", "MHJ", "ABJ")
 PercentOfInaccurate = aggregate(as.numeric(percent_inaccurate)~REPAIR_TYPE+plasmid,data=AllInaccurate, sum) #Breaks down the types of repair (consistent or not) amongst inaccurate repair events
-
-head(AllInaccurate)
-
-
 colnames(PercentOfInaccurate)[3]="percent_inaccurate"
 
 #adding if statements to address InaccurateRepairPlot error I was expecting to happen when a class of repair events don't exist
@@ -1613,7 +1610,7 @@ write.csv(AllRepair, paste(outdir, "/", "table_outputs/", plasmid, "_All_Repair_
 #----------------Consistency and Inaccurate Repair Plots------------------------
 #this plot only runs if all 3 repair types (InDel, MHJ, ABJ) exist or if ABJ and MHJs exist. 
 #If we only have ABJ or MHJ, this plot is pointless so it gets skipped.
-if (nrow(PercentOfInaccurate)=3) {
+if (nrow(PercentOfInaccurate)==3) {
   InaccurateRepairPlot = ggplot(PercentOfInaccurate, aes(x=plasmid, y=percent_inaccurate, fill=REPAIR_TYPE, label=REPAIR_TYPE))+ 
     geom_bar(position="stack", stat="identity", colour="black")+
     theme_classic(base_size = 9)+ geom_text(position = position_stack(vjust=0.5), color=c("white","black","black"))+
@@ -1664,8 +1661,6 @@ ConsistencyBreakdownPlot
 pdf(paste(outdir, "/", "plots/", plasmid, "_SD-MMEJ_Consistency_Breakdown_Plot.pdf", sep=""))
 ConsistencyBreakdownPlot
 dev.off()
-
-
 
 
 #-------------------------Deletion Stopper Plot - Data Manipulation----------
