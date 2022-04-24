@@ -719,7 +719,7 @@ if (nrow(AllRepeats)>0){
                                 fill=percent_insertion_jxn, linetype=mechanism),colour="black",stat = "identity",width=.8)+geom_hline(yintercept = BreakPointFromLeft+0.5, colour="red", size=0.6)
   PrimerPlot
   pdf(paste(outdir, "/", "plots/", plasmid, "_Ins_Primer_Plot.pdf", sep=""), height = 5, width = 10)
-  PrimerPlot
+  print(PrimerPlot)
   dev.off()
 
   #----------------Insertion Repeat Motif Plot - Data Manipulation-------------------
@@ -792,7 +792,7 @@ if (nrow(AllRepeats)>0){
                  width=.8,lwd=.5)+ geom_hline(yintercept = BreakPointFromLeft+0.5, colour="red", size=0.75)
   RepeatMotifPlot
   pdf(paste(outdir, "/", "plots/", plasmid, "_Insertion_Repeat_Motif_Plot.pdf", sep=""), height = 5, width = 10)
-  RepeatMotifPlot
+  print(RepeatMotifPlot)
   dev.off()
   
   #----------------Insertion Resection - Data Manipulation-----------
@@ -832,7 +832,7 @@ if (nrow(AllRepeats)>0){
           strip.text.y = element_text(size=10, face="bold"))
   InsertionResectionPlotSide
   pdf(paste(outdir, "/", "plots/", plasmid, "_Insertion_Resection_Plot_Side.pdf", sep=""), height = 5, width = 10)
-  InsertionResectionPlotSide
+  print(InsertionResectionPlotSide)
   dev.off()
   
   #----------------Insertion Resections - Plot - Mechanism-----------
@@ -852,7 +852,7 @@ if (nrow(AllRepeats)>0){
           strip.text.y = element_text(size=10, face="bold"))
   InsertionResectionPlotMechanism
   pdf(paste(outdir, "/", "plots/", plasmid, "_Insertion_Resection_Plot_Mechanism.pdf", sep=""), height = 5, width = 10)
-  InsertionResectionPlotMechanism
+  print(InsertionResectionPlotMechanism)
   dev.off()
   
   #----------------Insertion Flap Plot - Data Manipulation-----------------------------------
@@ -892,7 +892,7 @@ if (nrow(AllRepeats)>0){
   
   InsFlapPlot
   pdf(paste(outdir, "/", "plots/", plasmid, "_Insertion_Flap_Plot.pdf", sep=""), height = 5, width = 10)
-  InsFlapPlot
+  print(InsFlapPlot)
   dev.off()
   
   #----------------Insertion Repeat Motif by Side - Plot---------------
@@ -910,7 +910,7 @@ if (nrow(AllRepeats)>0){
           strip.text.y = element_text(size=10, face="bold"))
   InsSidePlot
   pdf(paste(outdir, "/", "plots/", plasmid, "_Insertion_Side_Usage_Plot.pdf", sep=""), height = 5, width = 10)
-  InsSidePlot
+  print(InsSidePlot)
   dev.off()
   
   ## Second set of insertion plots
@@ -978,7 +978,7 @@ if (nrow(AllRepeats)>0){
           strip.text.y = element_text(size=10, face="bold"))
   PrimerDistancePlotInaccurateReads
   pdf(paste(outdir, "/", "plots/", plasmid, "_Primer_Distance_Plot_Inaccurate_Reads.pdf", sep=""), width=15)
-  PrimerDistancePlotInaccurateReads
+  print(PrimerDistancePlotInaccurateReads)
   dev.off()
   
   #--------------------Primer Distance Plot - Insertion Events--------------------------
@@ -999,7 +999,7 @@ if (nrow(AllRepeats)>0){
           strip.text.y = element_text(size=10, face="bold"))
   PrimerDistancePlotInsertion
   pdf(paste(outdir, "/", "plots/", plasmid, "_Primer_Distance_Plot_Insertion.pdf", sep=""), width=15)
-  PrimerDistancePlotInsertion
+  print(PrimerDistancePlotInsertion)
   dev.off()
   
   #--------------------Primer Length Plots - Insertion Events--------------------------
@@ -1020,7 +1020,7 @@ if (nrow(AllRepeats)>0){
           strip.text.y = element_text(size=10, face="bold"))
   PrimerLengthPlotInsertion
   pdf(paste(outdir, "/", "plots/", plasmid, "_Primer_Length_Plot_Insertion.pdf", sep=""), width=15)
-  PrimerLengthPlotInsertion
+  print(PrimerLengthPlotInsertion)
   dev.off()
   
   ## Third set of insertion plots
@@ -1050,7 +1050,7 @@ if (nrow(AllRepeats)>0){
   #geom_vline(aes(xintercept = AllInsMedian), colour="red", size=0.75,linetype = "longdash")
   AllInsertionLengthPlot
   pdf(paste(outdir, "/", "plots/", plasmid, "_Insertion_Length_Plot_All.pdf", sep=""), width = 20)
-  AllInsertionLengthPlot
+  print(AllInsertionLengthPlot)
   dev.off()
   
   #--------------------------Insertion Length Plot - Consistent----------------
@@ -1072,7 +1072,7 @@ if (nrow(AllRepeats)>0){
     geom_vline(aes(xintercept = ConsInsLenMean), colour="blue", size=0.75,linetype = "longdash")
   ConsistentInsertionLengthPlot
   pdf(paste(outdir, "/", "plots/", plasmid, "_Insertion_Length_Plot_Consistent.pdf", sep=""), width = 15)
-  ConsistentInsertionLengthPlot
+  print(ConsistentInsertionLengthPlot)
   dev.off()
 }
 
@@ -1191,7 +1191,7 @@ if (nrow(del) > 0){
     geom_hline(yintercept = BreakPointFromLeft+0.5, colour="red", size=0.75)
   DelMotifPlot
   pdf(paste(outdir, "/", "plots/", plasmid, "_Deletion_Repeat_Motif.pdf", sep=""), height = 7, width = 10)
-  DelMotifPlot
+  print(DelMotifPlot)
   dev.off()
   
   #----------------Deletion Flap Plot - Data Manipulation-----------------------------------
@@ -1235,7 +1235,7 @@ if (nrow(del) > 0){
   
   DelFlapMHJPlot
   pdf(paste(outdir, "/", "plots/", plasmid, "_Deletion_Flap_MHJ_Plot.pdf", sep=""), height = 5, width = 10)
-  DelFlapMHJPlot
+  print(DelFlapMHJPlot)
   dev.off()
   
   #----------------Deletion Flap Plot - ABJ Plot-----------------------------------
@@ -1270,7 +1270,7 @@ if (nrow(del) > 0){
   
   DelFlapABJPlot
   pdf(paste(outdir, "/", "plots/", plasmid, "_Deletion_Flap_ABJ_Plot.pdf", sep=""), height = 5, width = 10)
-  DelFlapABJPlot
+  print(DelFlapABJPlot)
   dev.off()
   }, silent=TRUE)
   
@@ -1303,7 +1303,7 @@ if (nrow(del) > 0){
           strip.text.y = element_text(size=10, face="bold"))
   DeletionResectionPlotSide
   pdf(paste(outdir, "/", "plots/", plasmid, "_Deletion_Resection_Plot_BreakSide.pdf", sep=""), height = 5, width = 10)
-  DeletionResectionPlotSide
+  print(DeletionResectionPlotSide)
   dev.off()
   
   #----------------Deletion Resection - Plot - Mechanism-----------
@@ -1323,7 +1323,7 @@ if (nrow(del) > 0){
           strip.text.y = element_text(size=10, face="bold"))
   DeletionResectionPlotMechanism
   pdf(paste(outdir, "/", "plots/", plasmid, "_Deletion_Resection_Plot_Mechanism.pdf", sep=""), height = 5, width = 10)
-  DeletionResectionPlotMechanism
+  print(DeletionResectionPlotMechanism)
   dev.off()
   
   #----------------Deletion Resection - Plot - Repair Type-----------
@@ -1343,7 +1343,7 @@ if (nrow(del) > 0){
           strip.text.y = element_text(size=10, face="bold"))
   DeletionResectionPlotRepairType
   pdf(paste(outdir, "/", "plots/", plasmid, "_Deletion_Resection_Plot_Repair_Type.pdf", sep=""), height = 5, width = 10)
-  DeletionResectionPlotRepairType
+  print(DeletionResectionPlotRepairType)
   dev.off()
   
   #----------------Deletion Repeat Motif by Side - Plot - Mechanism---------------
@@ -1361,7 +1361,7 @@ if (nrow(del) > 0){
           strip.text.y = element_text(size=10, face="bold"))
   DelSideMechPlot
   pdf(paste(outdir, "/", "plots/", plasmid, "_Deletion_Side_Usage_Mech_Plot.pdf", sep=""), height = 5, width = 10)
-  DelSideMechPlot
+  print(DelSideMechPlot)
   dev.off()
   
   #----------------Deletion Repeat Motif by Side - Plot - Repair Type---------------
@@ -1378,7 +1378,7 @@ if (nrow(del) > 0){
           strip.text.y = element_text(size=10, face="bold"))
   DelSideTypePlot
   pdf(paste(outdir, "/", "plots/", plasmid, "_Deletion_Side_Usage_Repair_Type_Plot.pdf", sep=""), height = 5, width = 10)
-  DelSideTypePlot
+  print(DelSideTypePlot)
   dev.off()
   
   
@@ -1405,7 +1405,7 @@ if (nrow(del) > 0){
           strip.text.y = element_text(size=10, face="bold"))
   MHLengthPlot
   pdf(paste(outdir, "/", "plots/", plasmid, "_MH_Length_Plot_Consistent_InaccurateReads.pdf", sep=""), width = 10)
-  MHLengthPlot
+  print(MHLengthPlot)
   dev.off()
   
   #----------------------------Microhomology Length Plot - Deletion Events----------
@@ -1430,7 +1430,7 @@ if (nrow(del) > 0){
           strip.text.y = element_text(size=10, face="bold"))
   MHLengthPlotDeletion
   pdf(paste(outdir, "/", "plots/", plasmid, "_MH_Length_Plot_Deletion_Consistent.pdf", sep=""), width = 10)
-  MHLengthPlot
+  print(MHLengthPlotDeletion)
   dev.off()
   
   #----------------------------Microhomology Usage Plot- Inaccurate Reads----------
@@ -1456,7 +1456,7 @@ if (nrow(del) > 0){
           strip.text.y = element_text(size=10, face="bold"))
   MHusagePlot
   pdf(paste(outdir, "/", "plots/", plasmid, "_MH_Usage_Plot_InaccurateReads.pdf", sep=""), width = 15)
-  MHusagePlot
+  print(MHusagePlot)
   dev.off()
   
   #----------------------------Microhomology Usage Plot - Deletion Events----------
@@ -1483,7 +1483,7 @@ if (nrow(del) > 0){
           strip.text.y = element_text(size=10, face="bold"))
   MHusagePlotDeletion
   pdf(paste(outdir, "/", "plots/", plasmid, "_MH_Usage_Plot_Consistent_Deletions.pdf", sep=""), width = 15)
-  MHusagePlotDeletion
+  print(MHusagePlotDeletion)
   dev.off()
   
   
@@ -1506,7 +1506,7 @@ if (nrow(del) > 0){
     geom_vline(aes(xintercept = AllDeletionsAggMean), colour="blue", size=0.75,linetype = "longdash")
   AllDeletionsLengthPlot
   pdf(paste(outdir, "/", "plots/", plasmid, "_Deletion_Length_Plot_All.pdf", sep=""), width = 20)
-  AllDeletionsLengthPlot
+  print(AllDeletionsLengthPlot)
   dev.off()
   
   #--------------------------Deletion Length Plot - Consistent----------------
@@ -1528,7 +1528,7 @@ if (nrow(del) > 0){
     geom_vline(aes(xintercept = ConDelAggMean), colour="blue", size=0.75,linetype = "longdash")
   ConsistentDeletionsLengthPlot
   pdf(paste(outdir, "/", "plots/", plasmid, "_Deletion_Length_Plot_Consistent.pdf", sep=""), width = 20)
-  ConsistentDeletionsLengthPlot
+  print(ConsistentDeletionsLengthPlot)
   dev.off()
 }
 
@@ -1624,7 +1624,7 @@ if (nrow(PercentOfInaccurate)==3) {
           axis.title.y=element_text(size=10, face="bold"))
   InaccurateRepairPlot
   pdf(paste(outdir, "/", "plots/", plasmid, "_Inaccurate_Repair_Plot_All.pdf",sep=""), width=5)
-  InaccurateRepairPlot
+  print(InaccurateRepairPlot)
   dev.off()
 }
 
