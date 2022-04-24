@@ -24,8 +24,11 @@ if (length(args)<2) {
 }
 
 #In order to debug, uncomment this and comment the command line information
-outdir="/Users/rbator01/Library/CloudStorage/Box-Box/bioinformatics_research_technology/rt_bioinformatics_consultations/mcvey_lab_rt_bioinformatics/terrence_dna_repair/HiSeq_CRISPR_Data/renamed_files/R10_output/"
-plasmid="R10"
+# outdir="/Users/rbator01/Library/CloudStorage/Box-Box/bioinformatics_research_technology/rt_bioinformatics_consultations/mcvey_lab_rt_bioinformatics/terrence_dna_repair/HiSeq_CRISPR_Data/renamed_files/R100_output/"
+# plasmid="R100"
+
+print(paste0("running plasmid ", plasmid))
+print(paste0("with files ", outdir))
 
 #-----------------------Read In Data Frames--------------------------------------
 
