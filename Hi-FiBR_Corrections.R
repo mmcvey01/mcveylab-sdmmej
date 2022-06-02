@@ -1,8 +1,8 @@
 HiFiBR=read.csv("Iw7_output/Iw7_reclassified.csv")
-InsertionsOuput=read.csv("Iw7_output/Iw7_insertion_insertion_consistency2.csv")
-ComplexOutput=read.csv("Iw7_output/Iw7_complex_insertion_consistency2.csv")
-DeletionOutput=read.csv("Iw7_output/Iw7_deletion_consistency_table.txt", sep="\t", header=T)
-DeletionSubset=read.csv("Iw7_output/Iw7_deletion_consistency_log_subset.csv")
+#InsertionsOuput=read.csv("Iw7_output/Iw7_insertion_insertion_consistency2.csv")
+#ComplexOutput=read.csv("Iw7_output/Iw7_complex_insertion_consistency2.csv")
+#DeletionOutput=read.csv("Iw7_output/Iw7_deletion_consistency_table.txt", sep="\t", header=T)
+#DeletionSubset=read.csv("Iw7_output/Iw7_deletion_consistency_log_subset.csv")
 names(HiFiBR)[names(HiFiBR)=="ALIGNED_SEQ"] = "RECONSTRUCTED_SEQ"
 HiFiBR=subset(HiFiBR, READS>9)
 inaccurate=subset(HiFiBR, CLASS!="exact")
